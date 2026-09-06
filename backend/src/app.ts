@@ -11,7 +11,9 @@ import { notFoundMiddleware } from './middleware/not-found.middleware';
 import { globalRateLimiter } from './middleware/rate-limit.middleware';
 import { requestIdMiddleware } from './middleware/request-id.middleware';
 import { createAuthModule } from './modules/auth/auth.module';
+import { createContactModule } from './modules/contacts/contact.module';
 import { createAuthRouter } from './routes/auth.routes';
+import { createContactRouter } from './routes/contact.routes';
 import { healthRouter } from './routes/health.routes';
 
 export function createApp(): express.Express {
@@ -50,6 +52,7 @@ export function createApp(): express.Express {
 
   app.use('/api/v1', healthRouter);
   app.use('/api/v1', createAuthRouter(authModule));
+  app.use('/api/v1', createContactRouter(createContactModule(), authModule.authenticate));
 
   app.use(notFoundMiddleware);
   app.use(errorMiddleware);

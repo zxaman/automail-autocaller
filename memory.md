@@ -16,9 +16,10 @@ This file is updated after meaningful implementation work so future work can res
 - Phase 0 documentation is complete.
 - Phase 1 backend foundation is complete.
 - Phase 3 Angular foundation and design system is complete.
-- Phase 2 authentication and workspace foundation is complete and awaiting review.
+- Phase 2 authentication and workspace foundation is complete.
+- Phase 4 contacts is complete and awaiting review.
 - Angular Material is adopted for complex interaction primitives; simple presentational components remain custom.
-- Next planned phase: Phase 5 dashboard, or Phase 6 contacts, after approval.
+- Next planned phase: Phase 5 dashboard foundation after approval.
 
 ## Documents Created
 
@@ -31,7 +32,7 @@ This file is updated after meaningful implementation work so future work can res
 
 ## Current Phase
 
-### Phase 2 — Authentication and Workspace Foundation
+### Phase 4 — Contacts
 
 Status: Implemented and awaiting review.
 
@@ -89,6 +90,16 @@ No implementation file is currently being worked on. Phase 1 implementation is c
 - Material menu for the account menu and a shared Material confirm dialog added.
 - 21 backend tests pass; 12 database integration tests skip gracefully without MongoDB.
 - 38 frontend tests pass. Build and test typechecks are both clean.
+- Contact model added with workspace-scoped compound and partial unique indexes.
+- Phone normalization utility added for E.164 duplicate detection.
+- Contact repository enforces workspace scoping on every read and write.
+- Contact service handles duplicate policy, not-found semantics, and unique-index races.
+- Contact CRUD, search, filter, sort, pagination, and tag endpoints added.
+- Contact list page, detail page, form dialog, card, and filter components added.
+- Material paginator, select, chips, form fields, and dialog used for interaction primitives.
+- Search debounced at 300ms with switchMap cancellation to avoid stale renders.
+- 47 backend tests and 48 frontend tests pass.
+- 26 backend integration tests skip in this sandbox because MongoDB binaries are unreachable.
 
 ## Pending Decisions
 

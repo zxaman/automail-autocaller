@@ -34,8 +34,16 @@ export const APP_ROUTES: Routes = [
         path: 'contacts',
         title: 'Contacts · AutoCall & AutoMail',
         loadComponent: () =>
-          import('./features/contacts/contacts-page/contacts-page.component').then(
-            (m) => m.ContactsPageComponent,
+          import('./features/contacts/contact-list-page/contact-list-page.component').then(
+            (m) => m.ContactListPageComponent,
+          ),
+      },
+      {
+        path: 'contacts/:id',
+        title: 'Contact · AutoCall & AutoMail',
+        loadComponent: () =>
+          import('./features/contacts/contact-detail-page/contact-detail-page.component').then(
+            (m) => m.ContactDetailPageComponent,
           ),
       },
       {

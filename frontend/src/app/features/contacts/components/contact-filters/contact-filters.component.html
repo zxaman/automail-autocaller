@@ -1,0 +1,55 @@
+<section class="contact-filters" aria-label="Contact filters">
+  <div class="contact-filters__search">
+    <app-ui-icon name="search" size="sm" />
+    <input
+      type="search"
+      class="contact-filters__search-input"
+      placeholder="Search by name, email, company, or phone"
+      aria-label="Search contacts"
+      [ngModel]="query().search"
+      (ngModelChange)="searchChanged.emit($event)"
+    />
+  </div>
+
+  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="contact-filters__field">
+    <mat-label>Tag</mat-label>
+    <mat-select
+      [value]="query().tag"
+      (valueChange)="tagChanged.emit($event)"
+      panelWidth="220"
+    >
+      <mat-option [value]="null">All tags</mat-option>
+      @for (tag of tags(); track tag) {
+        <mat-option [value]="tag">{{ tag }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="contact-filters__field">
+    <mat-label>Reachable by</mat-label>
+    <mat-select [value]="channel" (valueChange)="channelChanged.emit($event)">
+      <mat-option value="all">Any channel</mat-option>
+      <mat-option value="email">Has email</mat-option>
+      <mat-option value="phone">Has phone</mat-option>
+    </mat-select>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="contact-filters__field">
+    <mat-label>Sort by</mat-label>
+    <mat-select [value]="activeSortLabel" (valueChange)="onSortSelected($event)">
+      @for (option of sortOptions; track option.label) {
+        <mat-option [value]="option.label">{{ option.label }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
+  @if (hasActiveFilters()) {
+    <app-ui-button variant="ghost" size="sm" (pressed)="filtersReset.emit()">
+      Clear filters
+    </app-ui-button>
+  }
+
+  <p class="contact-filters__count tabular" aria-live="polite">
+    {{ resultCount() }} {{ resultCount() === 1 ? 'contact' : 'contacts' }}
+  </p>
+</section>

@@ -16,7 +16,8 @@ A centralized communication workspace for importing contacts, making provider-ba
 - Phase 1 backend foundation: complete.
 - Phase 2 authentication and workspace foundation: complete.
 - Phase 3 Angular foundation and design system: complete (see `frontend/README.md`).
-- Product feature phases (contacts, imports, AutoMail, AutoCall) are not implemented yet.
+- Phase 4 contacts: complete.
+- Remaining feature phases (dashboard, imports, AutoMail, AutoCall) are not implemented yet.
 
 ## Authentication
 
@@ -33,6 +34,27 @@ Set `GOOGLE_CLIENT_ID` in `.env` and `googleClientId` in
 | POST | `/api/v1/auth/google` | public | Exchange a Google ID token for a session |
 | GET | `/api/v1/auth/me` | session | Current user and workspace |
 | POST | `/api/v1/auth/logout` | session | Revoke the session server-side |
+
+## Contacts
+
+All contact endpoints require a session and are scoped to the caller's workspace. A contact
+belonging to another workspace responds `404`, never `403`, so the API does not confirm that
+an id exists elsewhere.
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| GET | `/api/v1/contacts` | Paged list with search, filters, and sorting |
+| GET | `/api/v1/contacts/tags` | Distinct tags in the workspace |
+| POST | `/api/v1/contacts` | Create a contact |
+| GET | `/api/v1/contacts/:id` | Single contact |
+| PUT | `/api/v1/contacts/:id` | Update a contact |
+| DELETE | `/api/v1/contacts/:id` | Delete a contact |
+
+Query parameters: `page`, `pageSize` (max 100), `search`, `tag`, `company`, `source`,
+`hasEmail`, `hasPhone`, `sortBy`, `sortDir`.
+
+Phone numbers are normalized to E.164 before storage, so `9876543210`, `09876543210`, and
+`+91 98765 43210` are recognized as the same number for duplicate detection.
 
 ## Local backend setup
 

@@ -1,0 +1,119 @@
+@use 'mixins' as *;
+
+:host {
+  display: block;
+}
+
+.contact-detail__back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  align-self: flex-start;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-body-sm);
+  font-weight: var(--font-weight-medium);
+  text-decoration: none;
+
+  &:hover {
+    color: var(--color-primary-700);
+    text-decoration: none;
+  }
+}
+
+.contact-detail__summary {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.contact-detail__identity {
+  flex: 1;
+  min-width: 200px;
+}
+
+.contact-detail__name {
+  font-size: var(--font-size-page-title);
+  line-height: var(--line-height-page-title);
+  font-weight: var(--font-weight-bold);
+}
+
+.contact-detail__role {
+  color: var(--color-text-secondary);
+}
+
+.contact-detail__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin-top: var(--space-2);
+}
+
+.contact-detail__tag {
+  padding: 1px var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--color-primary-050);
+  color: var(--color-primary-700);
+  font-size: var(--font-size-caption);
+}
+
+.contact-detail__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.contact-detail__fields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
+}
+
+.contact-detail__field dt {
+  font-size: var(--font-size-caption);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+}
+
+.contact-detail__field dd {
+  margin: var(--space-1) 0 0;
+  color: var(--color-text-primary);
+  word-break: break-word;
+}
+
+.contact-detail__source {
+  text-transform: capitalize;
+}
+
+.contact-detail__notes {
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  white-space: pre-wrap;
+}
+
+.contact-detail__section-title {
+  margin-bottom: var(--space-2);
+  font-size: var(--font-size-card-title);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+@media (max-width: 900px) {
+  .contact-detail__fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@include mobile {
+  .contact-detail__fields {
+    grid-template-columns: 1fr;
+  }
+
+  .contact-detail__actions {
+    width: 100%;
+  }
+}

@@ -1,0 +1,91 @@
+<h2 mat-dialog-title class="contact-form__title">{{ title() }}</h2>
+
+<mat-dialog-content class="contact-form__content">
+  <form class="contact-form" [formGroup]="form" (ngSubmit)="save()">
+    @if (serverError()) {
+      <p class="contact-form__error" role="alert">{{ serverError() }}</p>
+    }
+
+    <mat-form-field appearance="outline" class="contact-form__field">
+      <mat-label>Full name</mat-label>
+      <input matInput formControlName="name" autocomplete="name" required />
+      @if (form.controls.name.hasError('required') && form.controls.name.touched) {
+        <mat-error>Name is required</mat-error>
+      }
+    </mat-form-field>
+
+    <div class="contact-form__row">
+      <mat-form-field appearance="outline" class="contact-form__field">
+        <mat-label>Phone number</mat-label>
+        <input matInput formControlName="phone" inputmode="tel" autocomplete="tel" />
+        <mat-hint>Local numbers are saved in international format</mat-hint>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="contact-form__field">
+        <mat-label>Email address</mat-label>
+        <input matInput formControlName="email" type="email" autocomplete="email" />
+        @if (form.controls.email.hasError('email') && form.controls.email.touched) {
+          <mat-error>Enter a valid email address</mat-error>
+        }
+      </mat-form-field>
+    </div>
+
+    @if (form.hasError('channelRequired') && form.touched) {
+      <p class="contact-form__error" role="alert">
+        Provide at least a phone number or an email address.
+      </p>
+    }
+
+    <div class="contact-form__row">
+      <mat-form-field appearance="outline" class="contact-form__field">
+        <mat-label>Company</mat-label>
+        <input matInput formControlName="company" autocomplete="organization" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="contact-form__field">
+        <mat-label>Designation</mat-label>
+        <input matInput formControlName="designation" autocomplete="organization-title" />
+      </mat-form-field>
+    </div>
+
+    <mat-form-field appearance="outline" class="contact-form__field">
+      <mat-label>Location</mat-label>
+      <input matInput formControlName="location" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="contact-form__field">
+      <mat-label>Tags</mat-label>
+      <mat-chip-grid #tagGrid aria-label="Contact tags">
+        @for (tag of tags(); track tag) {
+          <mat-chip-row (removed)="removeTag(tag)">
+            {{ tag }}
+            <button matChipRemove type="button" [attr.aria-label]="'Remove tag ' + tag">
+              <app-ui-icon name="close" size="sm" />
+            </button>
+          </mat-chip-row>
+        }
+        <input
+          placeholder="Add a tag"
+          [matChipInputFor]="tagGrid"
+          [matChipInputSeparatorKeyCodes]="separatorKeyCodes"
+          (matChipInputTokenEnd)="addTag($event)"
+        />
+      </mat-chip-grid>
+      <mat-hint>Press Enter or comma to add a tag</mat-hint>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="contact-form__field">
+      <mat-label>Notes</mat-label>
+      <textarea matInput formControlName="notes" rows="3"></textarea>
+    </mat-form-field>
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions class="contact-form__actions">
+  <app-ui-button variant="secondary" [disabled]="saving()" (pressed)="cancel()">
+    Cancel
+  </app-ui-button>
+  <app-ui-button variant="primary" [loading]="saving()" (pressed)="save()">
+    {{ isEdit() ? 'Save changes' : 'Add contact' }}
+  </app-ui-button>
+</mat-dialog-actions>

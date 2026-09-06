@@ -1,0 +1,80 @@
+<article class="contact-card">
+  <a class="contact-card__identity" [routerLink]="['/contacts', contact().id]">
+    <app-ui-avatar [name]="contact().name" size="md" />
+    <span class="contact-card__text">
+      <span class="contact-card__name">{{ contact().name }}</span>
+      <span class="contact-card__meta">
+        @if (contact().designation) {
+          {{ contact().designation }}
+        }
+        @if (contact().designation && contact().company) {
+          <span aria-hidden="true"> · </span>
+        }
+        @if (contact().company) {
+          {{ contact().company }}
+        }
+        @if (!contact().designation && !contact().company) {
+          No company recorded
+        }
+      </span>
+    </span>
+  </a>
+
+  <div class="contact-card__channels">
+    <span class="contact-card__channel tabular">
+      {{ contact().phone ?? '—' }}
+    </span>
+    <span class="contact-card__channel contact-card__channel--email">
+      {{ contact().email ?? '—' }}
+    </span>
+  </div>
+
+  @if (contact().tags.length) {
+    <ul class="contact-card__tags">
+      @for (tag of contact().tags; track tag) {
+        <li class="contact-card__tag">{{ tag }}</li>
+      }
+    </ul>
+  }
+
+  <span class="contact-card__last">
+    {{ contact().lastContactedAt ? (contact().lastContactedAt | appRelativeTime) : 'Not contacted' }}
+  </span>
+
+  <div class="contact-card__actions">
+    <button
+      type="button"
+      class="contact-card__action contact-card__action--call"
+      matTooltip="Call"
+      aria-label="Call contact"
+      [disabled]="!contact().phone"
+      (click)="callRequested.emit(contact())"
+    >
+      <app-ui-icon name="calls" size="sm" />
+    </button>
+    <button
+      type="button"
+      class="contact-card__action contact-card__action--email"
+      matTooltip="Send email"
+      aria-label="Email contact"
+      [disabled]="!contact().email"
+      (click)="emailRequested.emit(contact())"
+    >
+      <app-ui-icon name="emails" size="sm" />
+    </button>
+    <button
+      type="button"
+      class="contact-card__action"
+      [matMenuTriggerFor]="menu"
+      aria-label="More actions"
+    >
+      <app-ui-icon name="menu" size="sm" />
+    </button>
+
+    <mat-menu #menu="matMenu" xPosition="before">
+      <a mat-menu-item [routerLink]="['/contacts', contact().id]">View profile</a>
+      <button mat-menu-item type="button" (click)="editRequested.emit(contact())">Edit</button>
+      <button mat-menu-item type="button" (click)="deleteRequested.emit(contact())">Delete</button>
+    </mat-menu>
+  </div>
+</article>

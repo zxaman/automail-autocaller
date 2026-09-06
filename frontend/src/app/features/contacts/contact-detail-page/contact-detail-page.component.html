@@ -1,0 +1,124 @@
+<div class="app-page">
+  <a class="contact-detail__back" routerLink="/contacts">
+    <app-ui-icon name="chevron-left" size="sm" />
+    Back to contacts
+  </a>
+
+  @if (isLoading() && !contact()) {
+    <app-ui-loading-spinner label="Loading contact" size="lg" />
+  } @else if (notFound()) {
+    <app-ui-empty-state
+      icon="contacts"
+      title="Contact not found"
+      description="This contact does not exist in your workspace, or it has been deleted."
+      actionLabel="Back to contacts"
+      (actionTriggered)="reload()"
+    />
+  } @else if (hasError()) {
+    <app-ui-error-state
+      title="Contact unavailable"
+      [message]="errorMessage() ?? 'The contact could not be loaded.'"
+      (retry)="reload()"
+    />
+  } @else if (contact(); as person) {
+    <app-ui-card>
+      <div class="contact-detail__summary">
+        <app-ui-avatar [name]="person.name" size="lg" />
+
+        <div class="contact-detail__identity">
+          <h1 class="contact-detail__name">{{ person.name }}</h1>
+          <p class="contact-detail__role">
+            @if (person.designation) {
+              {{ person.designation }}
+            }
+            @if (person.designation && person.company) {
+              <span aria-hidden="true"> · </span>
+            }
+            @if (person.company) {
+              {{ person.company }}
+            }
+            @if (!person.designation && !person.company) {
+              No company recorded
+            }
+          </p>
+
+          @if (person.tags.length) {
+            <ul class="contact-detail__tags">
+              @for (tag of person.tags; track tag) {
+                <li class="contact-detail__tag">{{ tag }}</li>
+              }
+            </ul>
+          }
+        </div>
+
+        <div class="contact-detail__actions">
+          <app-ui-button
+            variant="primary"
+            icon="calls"
+            [disabled]="!person.phone"
+            (pressed)="onCall()"
+          >
+            Call
+          </app-ui-button>
+          <app-ui-button
+            variant="accent"
+            icon="emails"
+            [disabled]="!person.email"
+            (pressed)="onEmail()"
+          >
+            Email
+          </app-ui-button>
+          <app-ui-button variant="secondary" (pressed)="onEdit()">Edit</app-ui-button>
+          <app-ui-button variant="ghost" (pressed)="onDelete()">Delete</app-ui-button>
+        </div>
+      </div>
+
+      <dl class="contact-detail__fields">
+        <div class="contact-detail__field">
+          <dt>Phone</dt>
+          <dd class="tabular">{{ person.phone ?? 'Not provided' }}</dd>
+        </div>
+        <div class="contact-detail__field">
+          <dt>Email</dt>
+          <dd>{{ person.email ?? 'Not provided' }}</dd>
+        </div>
+        <div class="contact-detail__field">
+          <dt>Location</dt>
+          <dd>{{ person.location ?? 'Not provided' }}</dd>
+        </div>
+        <div class="contact-detail__field">
+          <dt>Source</dt>
+          <dd class="contact-detail__source">{{ person.source }}</dd>
+        </div>
+        <div class="contact-detail__field">
+          <dt>Added</dt>
+          <dd>{{ person.createdAt | appRelativeTime }}</dd>
+        </div>
+        <div class="contact-detail__field">
+          <dt>Last contacted</dt>
+          <dd>
+            {{ person.lastContactedAt ? (person.lastContactedAt | appRelativeTime) : 'Never' }}
+          </dd>
+        </div>
+      </dl>
+
+      @if (person.notes) {
+        <section class="contact-detail__notes">
+          <h2 class="contact-detail__section-title">Notes</h2>
+          <p>{{ person.notes }}</p>
+        </section>
+      }
+    </app-ui-card>
+
+    <app-ui-card
+      title="Communication timeline"
+      subtitle="Calls, emails, recordings, and attachments for this contact"
+    >
+      <app-ui-empty-state
+        icon="inbox"
+        title="No activity recorded yet"
+        description="Calls and emails appear here automatically once the calling and email phases are enabled."
+      />
+    </app-ui-card>
+  }
+</div>
