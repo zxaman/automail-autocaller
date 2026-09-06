@@ -29,6 +29,9 @@ A centralized communication workspace for importing contacts, making provider-ba
   calling is out of scope, so no international CPaaS is used. Serving a new country means
   onboarding an operator licensed there.
 - Phase 11 call recording: cancelled. All recording surface has been removed from the code.
+- Phase 13 analytics: complete. Server-side aggregation of call, email, and import
+  performance over a timezone-aware custom date range, with day/week/month bucketing,
+  a most-contacted ranking, and published definitions for every metric.
 - Phase 12 unified communication timeline: complete. One chronological history per contact
   merging calls, emails (with attachment metadata), notes, and the import that created the
   contact, plus a call-completed follow-up that prefills the composer.

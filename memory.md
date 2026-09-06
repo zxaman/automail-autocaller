@@ -398,3 +398,33 @@ The composer prefills and stops there - nothing is ever sent automatically.
 Gotcha worth keeping: `router.use(authenticate)` on a router mounted at the shared `/api/v1`
 path also intercepts unmatched paths, turning the unknown-route 404 into a misleading 401.
 Attach `authenticate` per route instead. The existing `app.spec.ts` not-found test caught it.
+
+## Phase 13 - Analytics
+
+Every figure is produced by MongoDB aggregation, never by loading documents and counting in
+Node. Bucketing passes `timezone` to `$dateToString` so a "day" is the reader's local day,
+and the browser sends its own IANA zone with each request.
+
+Metric definitions are shipped as data (`GET /api/v1/analytics/definitions`) and rendered
+next to the numbers. A rate is meaningless without its denominator, and two people reading
+"success rate" differently is how reporting loses trust. The denominators chosen:
+- callSuccessRate = connected / total calls placed.
+- averageCallDuration = talk time / CONNECTED calls only. Including unanswered calls would
+  drag the mean toward zero and misrepresent conversation length.
+- emailSuccessRate = sent / (sent + failed), i.e. delivery ATTEMPTS. Drafts and queued mail
+  are excluded because they have not been attempted yet.
+- importSuccessRate = rows imported / all rows read.
+
+Bucket size defaults by range length (>120 days -> month, >31 -> week, else day) so a year
+never renders 366 unreadable points; the client can override it. Node's ISO-week key builder
+mirrors Mongo's `%G-W%V` exactly, otherwise filled gap buckets would not line up with
+aggregated ones. Gaps are filled with explicit zeros: a chart that omits quiet days implies
+activity was continuous and distorts the trend.
+
+Bug found and fixed while here: `dashboard.repository.ts` still counted `status: 'missed'`,
+a value deleted in the Phase 10 status rename, so missedCalls was silently always 0. It now
+counts `no_answer` and `busy`. Worth remembering that renaming an enum does not fail loudly
+in aggregation - `$eq` on a dead value just returns zero forever.
+
+Reused rather than duplicated: `DashboardRangeFilterComponent` and the pure
+`DashboardActivityChartService` (SVG geometry, no charting dependency).

@@ -48,7 +48,11 @@ export class DashboardRepository {
           completedCalls: {
             $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] },
           },
-          missedCalls: { $sum: { $cond: [{ $eq: ['$status', 'missed'] }, 1, 0] } },
+          // 'missed' is the provider's no_answer/busy outcome: the call was
+          // placed but the person did not pick up. Renamed in Phase 10.
+          missedCalls: {
+            $sum: { $cond: [{ $in: ['$status', ['no_answer', 'busy']] }, 1, 0] },
+          },
           failedCalls: {
             $sum: { $cond: [{ $in: ['$status', ['failed', 'canceled']] }, 1, 0] },
           },

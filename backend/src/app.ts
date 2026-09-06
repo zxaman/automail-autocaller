@@ -21,9 +21,11 @@ import { createDashboardModule } from './modules/dashboard/dashboard.module';
 import { createEmailAccountModule } from './modules/email-accounts/email-account.module';
 import { createCallModule } from './modules/calls/call.module';
 import { createTimelineModule } from './modules/timeline/timeline.module';
+import { createAnalyticsModule } from './modules/analytics/analytics.module';
 import { createEmailModule } from './modules/emails/email.module';
 import { createCallRouter } from './routes/call.routes';
 import { createTimelineRouter } from './routes/timeline.routes';
+import { createAnalyticsRouter } from './routes/analytics.routes';
 import { createEmailRouter } from './routes/email.routes';
 import { createImportModule } from './modules/imports/import.module';
 import { createAuthRouter } from './routes/auth.routes';
@@ -95,6 +97,8 @@ export function createApp(): express.Express {
   );
 
   app.use('/api/v1', createTimelineRouter(createTimelineModule(), authModule.authenticate));
+
+  app.use('/api/v1', createAnalyticsRouter(createAnalyticsModule(), authModule.authenticate));
 
   app.use(notFoundMiddleware);
   app.use(errorMiddleware);

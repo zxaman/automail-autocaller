@@ -1,9 +1,201 @@
-<div class="app-page">
-  <app-ui-page-header title="Analytics" description="Communication activity trends and success rates." />
-  <app-ui-coming-soon
-    icon="analytics"
-    [phase]="phase"
-    [summary]="summary"
-    [capabilities]="capabilities"
+<div class="analytics">
+  <app-ui-page-header
+    title="Analytics"
+    subtitle="Calling, email, and import performance for the selected period"
   />
+
+  <app-dashboard-range-filter
+    [selection]="state.selection()"
+    [disabled]="state.isLoading()"
+    (rangeChange)="onRangeChange($event)"
+  />
+
+  @if (state.isLoading() && !state.summary()) {
+    <app-ui-loading-spinner label="Loading analytics" />
+  } @else if (state.errorMessage()) {
+    <app-ui-error-state [message]="state.errorMessage()!" (retry)="state.load()" />
+  } @else if (state.summary(); as summary) {
+    <!-- Calls -->
+    <section class="analytics__section">
+      <h2 class="analytics__heading">Calls</h2>
+
+      <div class="analytics__metrics">
+        <app-ui-metric-card
+          [metric]="{
+            id: 'callsPlaced',
+            label: 'Calls placed',
+            value: summary.calls.totalCalls,
+            icon: 'calls',
+            context: definition('totalCalls') ?? undefined
+          }"
+        />
+        <app-ui-metric-card
+          [metric]="{
+            id: 'callsConnected',
+            label: 'Connected',
+            value: summary.calls.connectedCalls,
+            icon: 'calls',
+            context: definition('connectedCalls') ?? undefined
+          }"
+        />
+        <app-ui-metric-card
+          [metric]="{
+            id: 'callSuccessRate',
+            label: 'Success rate',
+            value: summary.calls.successRate + '%',
+            icon: 'analytics',
+            context: definition('callSuccessRate') ?? undefined
+          }"
+        />
+        <app-ui-metric-card
+          [metric]="{
+            id: 'callTotalDuration',
+            label: 'Total talk time',
+            value: (summary.calls.totalDurationSeconds | appDuration),
+            icon: 'calls',
+            context: definition('totalCallDuration') ?? undefined
+          }"
+        />
+        <app-ui-metric-card
+          [metric]="{
+            id: 'callAverage',
+            label: 'Average call',
+            value: (summary.calls.averageDurationSeconds | appDuration),
+            icon: 'calls',
+            context: definition('averageCallDuration') ?? undefined
+          }"
+        />
+        <app-ui-metric-card
+          [metric]="{
+            id: 'callLongest',
+            label: 'Longest call',
+            value: (summary.calls.longestCallSeconds | appDuration),
+            icon: 'calls',
+            context: definition('longestCall') ?? undefined
+          }"
+        />
+      </div>
+
+      <app-ui-card title="Call outcomes">
+        <app-analytics-breakdown-bar
+          [items]="state.callStatusBars()"
+          emptyMessage="No calls were placed in this period"
+        />
+      </app-ui-card>
+    </section>
+
+    <!-- Emails -->
+    <section class="analytics__section">
+      <h2 class="analytics__heading">Emails</h2>
+
+      <div class="analytics__metrics">
+        <app-ui-metric-card
+          [metric]="{
+            id: 'emailsCreated',
+            label: 'Emails created',
+            value: summary.emails.totalEmails,
+            icon: 'emails',
+            context: definition('totalEmails') ?? undefined
+          }"
+        />
+        <app-ui-metric-card
+          [metric]="{
+            id: 'emailsSent',
+            label: 'Sent',
+            value: summary.emails.sentEmails,
+            icon: 'emails',
+            context: definition('sentEmails') ?? undefined
+          }"
+        />
+        <app-ui-metric-card
+          [metric]="{
+            id: 'emailsFailed',
+            label: 'Failed',
+            value: summary.emails.failedEmails,
+            icon: 'emails',
+            context: definition('failedEmails') ?? undefined
+          }"
+        />
+        <app-ui-metric-card
+          [metric]="{
+            id: 'emailSuccessRate',
+            label: 'Success rate',
+            value: summary.emails.successRate + '%',
+            icon: 'analytics',
+            context: definition('emailSuccessRate') ?? undefined
+          }"
+        />
+      </div>
+
+      <app-ui-card title="Email outcomes">
+        <app-analytics-breakdown-bar
+          [items]="state.emailStatusBars()"
+          emptyMessage="No emails were created in this period"
+        />
+      </app-ui-card>
+    </section>
+
+    <!-- Activity over time -->
+    <app-ui-card
+      title="Activity over time"
+      [subtitle]="'Bucketed by ' + summary.range.granularity + ', in ' + summary.range.timezone"
+    >
+      <div class="analytics__granularity" role="group" aria-label="Chart interval">
+        @for (option of granularityOptions; track option.value) {
+          <button
+            type="button"
+            class="analytics__granularity-option"
+            [class.analytics__granularity-option--active]="
+              summary.range.granularity === option.value
+            "
+            [attr.aria-pressed]="summary.range.granularity === option.value"
+            [disabled]="state.isLoading()"
+            (click)="onGranularityChange(option.value)"
+          >
+            {{ option.label }}
+          </button>
+        }
+      </div>
+
+      <app-dashboard-activity-chart
+        [points]="state.chartPoints()"
+        [loading]="state.isLoading()"
+      />
+    </app-ui-card>
+
+    <!-- Most contacted -->
+    <app-ui-card title="Most contacted" [subtitle]="definition('mostContacted')">
+      <app-analytics-leaderboard [entries]="summary.mostContacted" />
+    </app-ui-card>
+
+    <!-- Imports -->
+    <app-ui-card title="Imports">
+      <div class="analytics__metrics">
+        <app-ui-metric-card
+          [metric]="{ id: 'importBatches', label: 'Files imported', value: summary.imports.totalBatches, icon: 'imports' }"
+        />
+        <app-ui-metric-card
+          [metric]="{ id: 'importRows', label: 'Rows read', value: summary.imports.totalRows, icon: 'imports' }"
+        />
+        <app-ui-metric-card
+          [metric]="{ id: 'importAdded', label: 'Contacts added', value: summary.imports.successfulRows, icon: 'imports' }"
+        />
+        <app-ui-metric-card
+          [metric]="{ id: 'importDuplicates', label: 'Duplicates skipped', value: summary.imports.duplicateRows, icon: 'imports' }"
+        />
+        <app-ui-metric-card
+          [metric]="{ id: 'importFailed', label: 'Rows rejected', value: summary.imports.failedRows, icon: 'imports' }"
+        />
+        <app-ui-metric-card
+          [metric]="{
+            id: 'importSuccessRate',
+            label: 'Import success rate',
+            value: summary.imports.successRate + '%',
+            icon: 'analytics',
+            context: definition('importSuccessRate') ?? undefined
+          }"
+        />
+      </div>
+    </app-ui-card>
+  }
 </div>
