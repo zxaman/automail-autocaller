@@ -1,0 +1,18 @@
+{
+  "name": "automail-autocaller",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AutoCall & AutoMail communication workspace",
+  "scripts": {
+    "api:dev": "npm --prefix backend run dev",
+    "api:build": "npm --prefix backend run build",
+    "api:start": "npm --prefix backend run start",
+    "api:test": "npm --prefix backend run test",
+    "api:test:watch": "npm --prefix backend run test:watch",
+    "backend:install": "npm --prefix backend install",
+    "frontend:install": "npm --prefix frontend install"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
