@@ -2,7 +2,7 @@ import request from 'supertest';
 import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createApp } from '../../app';
-import { createTestMongo, type TestMongo } from '../../../test/mongo';
+import { createTestMongo, type TestMongo } from '../../test-support/mongo';
 import type { GoogleIdentity } from '../../infrastructure/google/google-token-verifier';
 import { SessionModel } from './session.model';
 import { UserModel } from '../users/user.model';
@@ -21,8 +21,10 @@ vi.mock('../../infrastructure/google/google-token-verifier', async (importOrigin
   };
 });
 
-// Resolved before the suites are registered so unavailable infrastructure
-// skips the integration tests rather than failing them.
+/**
+ * Resolved during collection so unavailable infrastructure skips the
+ * integration tests rather than failing them.
+ */
 const testMongo: TestMongo = await createTestMongo();
 const describeWithDb = testMongo.available ? describe : describe.skip;
 

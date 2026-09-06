@@ -14,8 +14,25 @@ A centralized communication workspace for importing contacts, making provider-ba
 ## Current status
 
 - Phase 1 backend foundation: complete.
+- Phase 2 authentication and workspace foundation: complete.
 - Phase 3 Angular foundation and design system: complete (see `frontend/README.md`).
-- Phase 2 authentication and the product feature phases are not implemented yet.
+- Product feature phases (contacts, imports, AutoMail, AutoCall) are not implemented yet.
+
+## Authentication
+
+Sign-in is Google-only. The browser obtains a short-lived Google ID token, the API verifies
+it against Google, provisions the user and a private workspace on first login, and issues an
+opaque session in an HttpOnly cookie. Only a SHA-256 hash of the session token is stored.
+
+Set `GOOGLE_CLIENT_ID` in `.env` and `googleClientId` in
+`frontend/src/environments/environment.ts` to enable it. When unset, the API returns
+`GOOGLE_AUTH_NOT_CONFIGURED` and the login screen says so rather than faking a session.
+
+| Method | Path | Auth | Purpose |
+| --- | --- | --- | --- |
+| POST | `/api/v1/auth/google` | public | Exchange a Google ID token for a session |
+| GET | `/api/v1/auth/me` | session | Current user and workspace |
+| POST | `/api/v1/auth/logout` | session | Revoke the session server-side |
 
 ## Local backend setup
 

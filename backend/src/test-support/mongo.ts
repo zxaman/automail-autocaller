@@ -7,8 +7,7 @@ import mongoose from 'mongoose';
  * unit suites still run.
  */
 export interface TestMongo {
-  available: boolean;
-  connect(): Promise<void>;
+  readonly available: boolean;
   disconnect(): Promise<void>;
 }
 
@@ -38,7 +37,9 @@ export async function createTestMongo(): Promise<TestMongo> {
     try {
       const { MongoMemoryServer } = await import('mongodb-memory-server');
       const server = await MongoMemoryServer.create();
-      stopMemoryServer = () => server.stop();
+      stopMemoryServer = async () => {
+        await server.stop();
+      };
       return tryConnect(server.getUri());
     } catch {
       return false;
@@ -49,7 +50,6 @@ export async function createTestMongo(): Promise<TestMongo> {
 
   return {
     available,
-    connect: async () => undefined,
     disconnect: async () => {
       if (available) {
         await mongoose.disconnect();

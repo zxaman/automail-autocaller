@@ -15,9 +15,10 @@ This file is updated after meaningful implementation work so future work can res
 - No external provider credentials have been configured.
 - Phase 0 documentation is complete.
 - Phase 1 backend foundation is complete.
-- Phase 3 Angular foundation and design system is complete and awaiting review.
-- Phase 2 authentication is intentionally not implemented; the login screen does not fake a session.
-- Next planned phase: Phase 2 authentication and workspace foundation after approval.
+- Phase 3 Angular foundation and design system is complete.
+- Phase 2 authentication and workspace foundation is complete and awaiting review.
+- Angular Material is adopted for complex interaction primitives; simple presentational components remain custom.
+- Next planned phase: Phase 5 dashboard, or Phase 6 contacts, after approval.
 
 ## Documents Created
 
@@ -30,7 +31,7 @@ This file is updated after meaningful implementation work so future work can res
 
 ## Current Phase
 
-### Phase 3 — Angular Foundation and Design System
+### Phase 2 — Authentication and Workspace Foundation
 
 Status: Implemented and awaiting review.
 
@@ -74,12 +75,27 @@ No implementation file is currently being worked on. Phase 1 implementation is c
 - Nine lazy-loaded feature routes added with an honest phase placeholder where the backend is missing.
 - Dashboard page wired to the backend aggregation endpoint with loading, empty, and error states.
 - 27 frontend unit tests pass; development and production builds succeed.
+- Google ID-token verification isolated behind a GoogleTokenVerifier interface.
+- User, Workspace, and Session Mongoose models added with indexes and a session TTL index.
+- Repository, service, controller, and route layers added for authentication.
+- Private workspace provisioned on first login with orphan cleanup on failure.
+- Opaque session tokens issued; only SHA-256 hashes are persisted.
+- HttpOnly, SameSite=Lax session cookie with configurable secure flag and domain.
+- Authenticate and authorize middleware added; AuthContext attached to every protected request.
+- Zod request validation middleware and global plus auth-specific rate limiting added.
+- Angular Material added and themed against the product design tokens.
+- Google Identity Services button wired into the login screen.
+- App initializer resolves the session once before the first route activates.
+- Material menu for the account menu and a shared Material confirm dialog added.
+- 21 backend tests pass; 12 database integration tests skip gracefully without MongoDB.
+- 38 frontend tests pass. Build and test typechecks are both clean.
 
 ## Pending Decisions
 
 - Primary launch geography
 - Telephony provider
 - Web-only or web plus mobile MVP
+- Whether to enable a real Google client ID for demo purposes
 - Gmail App Password-only MVP versus OAuth timing
 - Object storage provider
 - Deployment target
