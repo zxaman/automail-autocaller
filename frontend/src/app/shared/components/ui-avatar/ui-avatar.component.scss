@@ -1,0 +1,38 @@
+:host {
+  display: inline-flex;
+}
+
+.ui-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--color-primary-100);
+  color: var(--color-primary-700);
+  font-weight: var(--font-weight-semibold);
+}
+
+.ui-avatar--sm {
+  width: 28px;
+  height: 28px;
+  font-size: var(--font-size-caption);
+}
+
+.ui-avatar--md {
+  width: 36px;
+  height: 36px;
+  font-size: var(--font-size-body-sm);
+}
+
+.ui-avatar--lg {
+  width: 56px;
+  height: 56px;
+  font-size: var(--font-size-body-lg);
+}
+
+.ui-avatar__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}

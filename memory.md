@@ -14,8 +14,10 @@ This file is updated after meaningful implementation work so future work can res
 - No environment secrets have been added.
 - No external provider credentials have been configured.
 - Phase 0 documentation is complete.
-- Phase 1 backend foundation is complete and awaiting review.
-- Next planned phase: Authentication and workspace foundation after approval.
+- Phase 1 backend foundation is complete.
+- Phase 3 Angular foundation and design system is complete and awaiting review.
+- Phase 2 authentication is intentionally not implemented; the login screen does not fake a session.
+- Next planned phase: Phase 2 authentication and workspace foundation after approval.
 
 ## Documents Created
 
@@ -28,7 +30,7 @@ This file is updated after meaningful implementation work so future work can res
 
 ## Current Phase
 
-### Phase 1 — Backend Foundation
+### Phase 3 — Angular Foundation and Design System
 
 Status: Implemented and awaiting review.
 
@@ -61,6 +63,17 @@ No implementation file is currently being worked on. Phase 1 implementation is c
 - Docker Compose services for MongoDB and Redis added.
 - Phase 1 API tests added.
 - TypeScript build and tests pass.
+- Angular 22 standalone workspace created with zoneless change detection.
+- Strict TypeScript and strict template checking enabled.
+- Design tokens, reset, mixins, and utilities added as SCSS.
+- Application shell, sidebar, header, and mobile bottom navigation added.
+- Functional auth and guest guards added.
+- Functional auth, loading, and error HTTP interceptors added.
+- ApiClient, Auth, Layout, Loading, Navigation, Notification, and FeatureFlag services added.
+- Twelve shared presentation components and three shared pipes added.
+- Nine lazy-loaded feature routes added with an honest phase placeholder where the backend is missing.
+- Dashboard page wired to the backend aggregation endpoint with loading, empty, and error states.
+- 27 frontend unit tests pass; development and production builds succeed.
 
 ## Pending Decisions
 

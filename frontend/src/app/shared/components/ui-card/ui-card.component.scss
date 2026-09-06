@@ -1,0 +1,39 @@
+@use 'mixins' as *;
+
+:host {
+  display: block;
+}
+
+.ui-card {
+  @include card-surface;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  height: 100%;
+}
+
+.ui-card--padded {
+  padding: var(--space-6);
+}
+
+.ui-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.ui-card__title {
+  font-size: var(--font-size-card-title);
+  font-weight: var(--font-weight-semibold);
+}
+
+.ui-card__subtitle {
+  margin-top: var(--space-1);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-body-sm);
+}
+
+.ui-card__actions:empty {
+  display: none;
+}

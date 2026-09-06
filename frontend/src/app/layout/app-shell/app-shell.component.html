@@ -1,0 +1,21 @@
+<div class="shell">
+  <app-sidebar />
+
+  @if (isSidebarOpen() && !isDesktop()) {
+    <div class="shell__overlay" (click)="closeSidebar()" aria-hidden="true"></div>
+  }
+
+  <div class="shell__main">
+    <app-header />
+
+    @if (isLoading()) {
+      <div class="shell__progress" role="progressbar" aria-label="Loading"></div>
+    }
+
+    <main class="shell__content" id="main-content" tabindex="-1">
+      <router-outlet />
+    </main>
+  </div>
+
+  <app-mobile-navigation />
+</div>

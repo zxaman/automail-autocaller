@@ -1,0 +1,17 @@
+<svg
+  [attr.width]="pixelSize()"
+  [attr.height]="pixelSize()"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  stroke-width="1.7"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+  [attr.role]="label() ? 'img' : 'presentation'"
+  [attr.aria-hidden]="label() ? null : 'true'"
+  [attr.aria-label]="label()"
+>
+  @for (path of paths(); track path) {
+    <path [attr.d]="path"></path>
+  }
+</svg>

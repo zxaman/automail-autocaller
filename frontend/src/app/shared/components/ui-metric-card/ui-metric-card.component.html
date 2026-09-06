@@ -1,0 +1,24 @@
+<article class="metric-card">
+  <div class="metric-card__top">
+    <span class="metric-card__label">{{ metric().label }}</span>
+    <span class="metric-card__icon" aria-hidden="true">
+      <app-ui-icon [name]="metric().icon" size="sm" />
+    </span>
+  </div>
+
+  @if (loading()) {
+    <app-ui-skeleton width="60%" height="32px" />
+  } @else {
+    <p class="metric-card__value tabular">{{ metric().value }}</p>
+  }
+
+  @if (metric().context) {
+    <p class="metric-card__context">{{ metric().context }}</p>
+  }
+
+  @if (metric().trend; as trend) {
+    <p class="metric-card__trend" [class]="'metric-card__trend--' + trend.direction">
+      {{ trend.label }}
+    </p>
+  }
+</article>

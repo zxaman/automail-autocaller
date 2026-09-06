@@ -1,0 +1,33 @@
+:host {
+  display: block;
+}
+
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.page-header__title {
+  font-size: var(--font-size-page-title);
+  line-height: var(--line-height-page-title);
+  font-weight: var(--font-weight-bold);
+}
+
+.page-header__description {
+  margin-top: var(--space-1);
+  max-width: 68ch;
+  color: var(--color-text-secondary);
+}
+
+.page-header__actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.page-header__actions:empty {
+  display: none;
+}

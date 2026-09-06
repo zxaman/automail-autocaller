@@ -1,0 +1,18 @@
+<app-ui-card>
+  <div class="coming-soon">
+    <span class="coming-soon__icon" aria-hidden="true">
+      <app-ui-icon [name]="icon()" size="lg" />
+    </span>
+    <div class="coming-soon__body">
+      <p class="coming-soon__phase">Planned in {{ phase() }}</p>
+      <p class="coming-soon__summary">{{ summary() }}</p>
+      @if (capabilities().length) {
+        <ul class="coming-soon__list">
+          @for (capability of capabilities(); track capability) {
+            <li>{{ capability }}</li>
+          }
+        </ul>
+      }
+    </div>
+  </div>
+</app-ui-card>

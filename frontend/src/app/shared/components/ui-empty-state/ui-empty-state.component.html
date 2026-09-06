@@ -1,0 +1,14 @@
+<div class="empty-state">
+  <span class="empty-state__icon" aria-hidden="true">
+    <app-ui-icon [name]="icon()" size="lg" />
+  </span>
+  <h3 class="empty-state__title">{{ title() }}</h3>
+  @if (description()) {
+    <p class="empty-state__description">{{ description() }}</p>
+  }
+  @if (actionLabel()) {
+    <app-ui-button variant="primary" size="sm" (pressed)="actionTriggered.emit()">
+      {{ actionLabel() }}
+    </app-ui-button>
+  }
+</div>

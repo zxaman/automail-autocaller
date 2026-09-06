@@ -1,0 +1,14 @@
+<div class="error-state" role="alert">
+  <span class="error-state__icon" aria-hidden="true">
+    <app-ui-icon name="alert" size="lg" />
+  </span>
+  <div class="error-state__body">
+    <h3 class="error-state__title">{{ title() }}</h3>
+    <p class="error-state__message">{{ message() }}</p>
+  </div>
+  @if (showRetry()) {
+    <app-ui-button variant="secondary" size="sm" (pressed)="retry.emit()">
+      {{ retryLabel() }}
+    </app-ui-button>
+  }
+</div>

@@ -1,0 +1,12 @@
+<nav class="mobile-nav" aria-label="Primary mobile">
+  <ul class="mobile-nav__list">
+    @for (item of items(); track item.id) {
+      <li class="mobile-nav__item">
+        <a class="mobile-nav__link" [routerLink]="item.route" routerLinkActive="is-active">
+          <app-ui-icon [name]="item.icon" size="md" />
+          <span class="mobile-nav__label">{{ item.shortLabel }}</span>
+        </a>
+      </li>
+    }
+  </ul>
+</nav>
