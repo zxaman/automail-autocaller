@@ -46,7 +46,10 @@ No implementation file is currently being worked on. Phase 1 implementation is c
 - File storage and queue architecture documented.
 - Design system direction documented.
 - Development phases documented.
-- Node.js and Express TypeScript workspace created.
+- Top-level `backend/` and `frontend/` folders created.
+- Backend-local dependencies installed in `backend/node_modules`.
+- Frontend Angular dependency workspace installed in `frontend/node_modules`.
+- Node.js and Express TypeScript backend created.
 - Environment validation added.
 - MongoDB connection lifecycle added.
 - Structured Pino logging added.
@@ -122,6 +125,7 @@ Current phase name and status.
 
 - The API currently has health and foundation routes only.
 - The API startup requires MongoDB to be available.
+- The `frontend/` package dependencies are installed, but the Angular workspace and feature screens are not created until the frontend foundation phase.
 - Authentication, business models, and feature endpoints are not implemented yet.
 - Redis is provisioned by Docker Compose but is not consumed until queue work begins.
 - Per-phase branch creation and merging into `main` cannot be performed in this Arena session because work is fixed to `arena/01a07639-automail-autocaller`.

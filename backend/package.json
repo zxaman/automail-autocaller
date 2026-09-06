@@ -1,5 +1,5 @@
 {
-  "name": "@automail-autocaller/api",
+  "name": "@automail-autocaller/backend",
   "version": "0.1.0",
   "private": true,
   "description": "AutoCall & AutoMail backend API",

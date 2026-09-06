@@ -3,15 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "description": "AutoCall & AutoMail communication workspace",
-  "workspaces": [
-    "apps/*"
-  ],
   "scripts": {
-    "api:dev": "npm --workspace apps/api run dev",
-    "api:build": "npm --workspace apps/api run build",
-    "api:start": "npm --workspace apps/api run start",
-    "api:test": "npm --workspace apps/api run test",
-    "api:test:watch": "npm --workspace apps/api run test:watch"
+    "api:dev": "npm --prefix backend run dev",
+    "api:build": "npm --prefix backend run build",
+    "api:start": "npm --prefix backend run start",
+    "api:test": "npm --prefix backend run test",
+    "api:test:watch": "npm --prefix backend run test:watch",
+    "backend:install": "npm --prefix backend install",
+    "frontend:install": "npm --prefix frontend install"
   },
   "engines": {
     "node": ">=20.0.0"

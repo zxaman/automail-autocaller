@@ -20,7 +20,8 @@ Phase 1 backend foundation is in progress. The Angular application and feature m
 1. Install Node.js 20 or newer.
 2. Copy `.env.example` to `.env`.
 3. Start local infrastructure with `docker compose up -d`.
-4. Install dependencies with `npm install`.
-5. Start the API with `npm run api:dev`.
+4. Install backend dependencies with `npm install --prefix backend`.
+5. Install frontend dependencies with `npm install --prefix frontend`.
+6. Start the API with `npm run api:dev`.
 
 The health endpoint is available at `http://localhost:3000/api/v1/health`.

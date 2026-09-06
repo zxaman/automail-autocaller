@@ -264,7 +264,7 @@ Providers contain external integration behavior.
 ## 11. Backend Folder Structure
 
 ```text
-apps/api/src/
+backend/src/
 ├── app.ts
 ├── server.ts
 ├── config/
@@ -342,7 +342,7 @@ contacts/
 ## 12. Frontend Folder Structure
 
 ```text
-apps/web/src/app/
+frontend/src/app/
 ├── core/
 │   ├── auth/
 │   ├── guards/
