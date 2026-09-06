@@ -21,6 +21,7 @@ A centralized communication workspace for importing contacts, making provider-ba
 - Phase 6 flexible spreadsheet import: complete.
 - Phase 7 Gmail account connection: complete.
 - Phase 8 AutoMail composer and queue: complete.
+- Phase 9 telephony provider evaluation: complete (decision phase; see `telephony-evaluation.md`).
 - Remaining feature phases (AutoMail, AutoCall) are not implemented yet.
 
 ## Authentication

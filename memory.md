@@ -306,3 +306,34 @@ outside its root. Duplicate uploads are deduplicated by checksum.
 Tests: backend 262 pass / 26 skipped, frontend 91 pass. Known gaps: no MongoDB or Redis in
 this sandbox, so integration tests skip and the Redis driver is unverified against a real
 server; the composer loads a 100-contact working set pending server-side recipient search.
+
+
+## Phase 9 — Telephony provider evaluation (decision phase, no feature code)
+
+The finding that reshaped the plan: **India prohibits domestic VoIP-to-PSTN dial-out.**
+A WebRTC softphone in the browser or Capacitor shell cannot lawfully call an Indian
+mobile or landline. The Telecommunications Act 2023 did not lift this. Twilio's own
+India guidance confirms outbound calls to India must originate from non-Indian numbers,
+which rules Twilio out as the primary provider despite `architecture.md` having named it.
+
+The lawful model is **PSTN-to-PSTN bridging**: the provider dials the agent's handset,
+then the contact, and patches the legs. Our app sends an API request and carries no audio.
+
+The consequence to keep in mind for Phase 10: **mute, hold, DTMF, and speaker are the
+handset's, not ours.** Rendering those buttons in-app would be fake calling UI and is
+forbidden by rules.md. `TelephonyCapabilities` exists so the UI hides what the provider
+genuinely cannot do, rather than showing dead controls.
+
+Decision: **Exotel primary** (UL-VNO licensed, REST, no client SDK, recording + webhooks),
+**Twilio behind the same interface** for international only.
+
+Recording: India's one-party-consent baseline is not enough for a commercial product.
+DPDP Act 2023 makes recorded audio personal data; full notice-and-consent compliance is
+required by May 13, 2027. Defaults chosen: recording off, purpose-specific announcement,
+timestamped consent log, per-workspace retention with deletion, private storage only.
+
+Also: no auto-dialler. TRAI's UCC regime plus rules.md line 289 means the calling queue
+stays manually advanced.
+
+Artifacts: `telephony-evaluation.md`, `backend/src/infrastructure/telephony/telephony-provider.ts`,
+revised `architecture.md` §6, telephony env keys in `.env.example`.
