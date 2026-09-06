@@ -1,0 +1,27 @@
+<div class="import-result">
+  <ul class="import-result__tiles">
+    @for (tile of tiles(); track tile.id) {
+      <li class="import-result__tile" [attr.data-tone]="tile.tone">
+        <span class="import-result__value tabular">{{ tile.value }}</span>
+        <span class="import-result__label text-secondary">{{ tile.label }}</span>
+      </li>
+    }
+  </ul>
+
+  @if (hasErrors()) {
+    <section class="import-result__errors">
+      <h3 class="import-result__errors-title">Rows that could not be imported</h3>
+      <p class="text-secondary">
+        Fix these rows in your file and import it again. Everything else was saved.
+      </p>
+      <ul class="import-result__error-list">
+        @for (error of result().errors; track error.rowNumber) {
+          <li>
+            <span class="import-result__row-number tabular">Row {{ error.rowNumber }}</span>
+            <span class="text-secondary">{{ error.reason }}</span>
+          </li>
+        }
+      </ul>
+    </section>
+  }
+</div>

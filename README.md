@@ -18,7 +18,8 @@ A centralized communication workspace for importing contacts, making provider-ba
 - Phase 3 Angular foundation and design system: complete (see `frontend/README.md`).
 - Phase 4 contacts: complete.
 - Phase 5 dashboard foundation: complete.
-- Remaining feature phases (imports, AutoMail, AutoCall) are not implemented yet.
+- Phase 6 flexible spreadsheet import: complete.
+- Remaining feature phases (Gmail connection, AutoMail, AutoCall) are not implemented yet.
 
 ## Authentication
 
@@ -81,6 +82,39 @@ continuous axis.
 The `calls`, `emails`, and `import_batches` collections are introduced here only so the
 dashboard has something to aggregate; the logic that writes to them arrives in the phases
 that own those features.
+
+## Importing contacts
+
+Import accepts `.xlsx`, `.xls`, and `.csv` up to 10 MB, and does **not** require the file to
+use particular column names.
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| POST | `/api/v1/imports/analyze` | Upload a file, get a suggested column mapping |
+| POST | `/api/v1/imports/commit` | Import the rows using a confirmed mapping |
+| GET | `/api/v1/imports` | Recent import batches |
+| GET | `/api/v1/imports/:id` | One batch, including its row errors |
+
+The flow is deliberately two-step. `analyze` parses the file, keeps the grid in a
+short-lived server-side session (30 minutes), and returns a suggested mapping. Nothing is
+written until `commit` is called with a mapping the user has confirmed.
+
+**Header handling.** The header row is found by scoring the first ten rows, so title rows,
+blank rows, and "generated on" stamps above the real headers are skipped. A file whose first
+row is already data is detected as headerless and mapped by value analysis alone.
+
+**Column matching.** Two independent signals decide each column: an alias registry matched
+against the normalized header (`Phone No.`, `Mobile`, `Contact Number`, `Candidate`,
+`Applicant`, `Email ID`, `Mail` and many more), and analysis of the column's own values.
+Where they agree, confidence is high and the mapping is pre-accepted. Generic headers such
+as `Number`, `User`, and `Details` are capped below the auto-accept threshold and always
+require explicit confirmation. Two columns can never claim the same field.
+
+**Row handling.** First-name and last-name columns are combined, phones are normalized to
+E.164, emails are format-checked, and a row is rejected if it has no name or no way to
+reach the contact. Failures are reported per row using the row number as it appears in
+Excel. Duplicates - both against existing contacts and repeats within the same file - are
+resolved by the chosen strategy: `skip`, `update`, or `import`.
 
 ## Local backend setup
 

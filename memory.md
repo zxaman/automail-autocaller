@@ -203,3 +203,37 @@ Tests after phase 5: backend 85 pass + 26 skipped, frontend 58 pass.
 Decision: the "today" metric cards stay pinned to today even when a wider range is selected,
 so the range control only affects the activity chart. Mixing the two made the cards
 ambiguous.
+
+## Phase 6 - Flexible spreadsheet import
+
+Two-step import: `POST /imports/analyze` parses and proposes a mapping, `POST /imports/commit`
+writes with a mapping the user confirmed. Nothing is written until commit.
+
+Backend (`modules/imports/`):
+- `spreadsheet.parser.ts` - ExcelJS for xlsx/xls/csv into a `string[][]` grid. Numeric cells
+  are stringified without scientific notation so phone numbers survive.
+- `header-detector.ts` - scores the first ten rows to find the header, skipping title and
+  blank rows. A row with no recognisable alias cannot be a header, which is what makes
+  headerless files detectable.
+- `header-alias.registry.ts` - alias table plus the ambiguous-header set.
+- `value-analyzer.ts` - infers email/phone/name from values as ratios.
+- `column-mapper.ts` - combines label and value evidence, caps generic headers below
+  auto-accept, and resolves two-columns-one-field collisions.
+- `row-builder.ts` - name combination, E.164 phones, email validation, tag splitting.
+- `import-session.store.ts` - in-memory TTL store for parsed grids, workspace-scoped.
+- `import.repository.ts` / `import.service.ts` / `import.controller.ts` / validation / mapper.
+- `middleware/upload.middleware.ts` - multer memory storage, 10 MB cap.
+
+Dependency note: the npm `xlsx` package is the abandoned 0.18.5 with two unpatched high CVEs
+and SheetJS's own CDN is unreachable from this sandbox, so ExcelJS was used instead. A `uuid`
+override pins its transitive dependency; `npm audit` is clean.
+
+Frontend (`features/imports/`): `import-wizard-page/` three-step wizard plus
+`components/import-file-drop/`, `components/import-column-mapper/`,
+`components/import-result-summary/`. `ApiClientService.upload()` added for multipart.
+
+Tests after phase 6: backend 140 pass + 26 skipped, frontend 69 pass.
+
+Decision: the wizard blocks commit until every low-confidence column is confirmed and until
+a name plus a phone-or-email are mapped. Guessing silently is how imports quietly corrupt an
+address book.

@@ -1,0 +1,148 @@
+<div class="app-page import-wizard">
+  <app-ui-page-header
+    title="Import contacts"
+    description="Bring contacts in from an Excel or CSV file. Column names do not need to match."
+  />
+
+  <ol class="import-wizard__steps">
+    @for (wizardStep of steps; track wizardStep.id) {
+      <li
+        class="import-wizard__step"
+        [class.import-wizard__step--active]="isStepActive(wizardStep.id)"
+        [class.import-wizard__step--complete]="isStepComplete(wizardStep.id)"
+        [attr.aria-current]="isStepActive(wizardStep.id) ? 'step' : null"
+      >
+        <span class="import-wizard__step-label">{{ wizardStep.label }}</span>
+        <span class="import-wizard__step-description text-muted">
+          {{ wizardStep.description }}
+        </span>
+      </li>
+    }
+  </ol>
+
+  @if (errorMessage()) {
+    <app-ui-error-state title="Import problem" [message]="errorMessage()!" />
+  }
+
+  @switch (step()) {
+    @case ('upload') {
+      <app-ui-card
+        title="Choose a file"
+        subtitle="We will read the column names and suggest how to map them"
+      >
+        <app-import-file-drop [disabled]="isAnalyzing()" (fileSelected)="onFileSelected($event)" />
+      </app-ui-card>
+    }
+
+    @case ('map') {
+      @if (analysis(); as currentAnalysis) {
+        <app-ui-card
+          [title]="'Map the columns in ' + currentAnalysis.fileName"
+          [subtitle]="
+            currentAnalysis.totalDataRows +
+            ' rows found' +
+            (currentAnalysis.hasHeaderRow
+              ? ' · header row detected'
+              : ' · no header row detected, so columns were matched by their values')
+          "
+        >
+          @if (unconfirmedCount() > 0) {
+            <div class="import-wizard__notice" role="status">
+              <span>
+                {{ unconfirmedCount() }}
+                {{ unconfirmedCount() === 1 ? 'column needs' : 'columns need' }}
+                your confirmation before importing.
+              </span>
+              <button type="button" class="import-wizard__link" (click)="confirmAll()">
+                Accept all suggestions
+              </button>
+            </div>
+          }
+
+          <app-import-column-mapper
+            [rows]="mapping()"
+            [disabled]="isCommitting()"
+            (fieldAssigned)="onFieldAssigned($event)"
+            (suggestionConfirmed)="onSuggestionConfirmed($event)"
+          />
+
+          @if (!hasName()) {
+            <p class="import-wizard__requirement">Map a column to the contact name to continue.</p>
+          }
+          @if (!hasChannel()) {
+            <p class="import-wizard__requirement">
+              Map a column to a phone number or an email address to continue.
+            </p>
+          }
+        </app-ui-card>
+
+        <app-ui-card title="Import options">
+          <fieldset class="import-wizard__fieldset">
+            <legend class="import-wizard__legend">When a contact already exists</legend>
+            <div class="import-wizard__choices">
+              @for (strategy of strategies; track strategy.value) {
+                <label class="import-wizard__choice">
+                  <input
+                    type="radio"
+                    name="duplicateStrategy"
+                    [value]="strategy.value"
+                    [checked]="duplicateStrategy() === strategy.value"
+                    (change)="setStrategy(strategy.value)"
+                  />
+                  <span>
+                    <span class="import-wizard__choice-label">{{ strategy.label }}</span>
+                    <span class="text-muted">{{ strategy.description }}</span>
+                  </span>
+                </label>
+              }
+            </div>
+          </fieldset>
+
+          <label class="import-wizard__field">
+            <span class="import-wizard__legend">Tag every imported contact (optional)</span>
+            <input
+              type="text"
+              class="import-wizard__input"
+              placeholder="e.g. q3-campaign, warm-lead"
+              (change)="onTagsInput($any($event.target).value)"
+            />
+          </label>
+
+          <div class="import-wizard__actions">
+            <app-ui-button variant="secondary" [disabled]="isCommitting()" (pressed)="back()">
+              Choose a different file
+            </app-ui-button>
+            <app-ui-button
+              variant="primary"
+              [disabled]="!canCommit()"
+              [loading]="isCommitting()"
+              (pressed)="commit()"
+            >
+              Import {{ currentAnalysis.totalDataRows }} rows
+            </app-ui-button>
+          </div>
+        </app-ui-card>
+      }
+    }
+
+    @case ('result') {
+      @if (result(); as importResult) {
+        <app-ui-card
+          [title]="'Imported ' + importResult.fileName"
+          subtitle="Here is what happened to each row"
+        >
+          <app-import-result-summary [result]="importResult" />
+
+          <div class="import-wizard__actions">
+            <app-ui-button variant="secondary" (pressed)="importAnother()">
+              Import another file
+            </app-ui-button>
+            <app-ui-button variant="primary" (pressed)="viewContacts()">
+              View contacts
+            </app-ui-button>
+          </div>
+        </app-ui-card>
+      }
+    }
+  }
+</div>

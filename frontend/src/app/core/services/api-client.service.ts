@@ -44,6 +44,19 @@ export class ApiClientService {
     );
   }
 
+  /**
+   * Multipart upload. The Content-Type header is deliberately not set so the
+   * browser can add the multipart boundary itself.
+   */
+  public upload<TData>(path: string, formData: FormData, params?: QueryParams): Observable<TData> {
+    return this.unwrap(
+      this.http.post<ApiResponse<TData>>(this.url(path), formData, {
+        params: this.toHttpParams(params),
+        withCredentials: true,
+      }),
+    );
+  }
+
   public delete<TData>(path: string): Observable<TData> {
     return this.unwrap(
       this.http.delete<ApiResponse<TData>>(this.url(path), { withCredentials: true }),

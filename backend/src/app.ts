@@ -13,9 +13,11 @@ import { requestIdMiddleware } from './middleware/request-id.middleware';
 import { createAuthModule } from './modules/auth/auth.module';
 import { createContactModule } from './modules/contacts/contact.module';
 import { createDashboardModule } from './modules/dashboard/dashboard.module';
+import { createImportModule } from './modules/imports/import.module';
 import { createAuthRouter } from './routes/auth.routes';
 import { createContactRouter } from './routes/contact.routes';
 import { createDashboardRouter } from './routes/dashboard.routes';
+import { createImportRouter } from './routes/import.routes';
 import { healthRouter } from './routes/health.routes';
 
 export function createApp(): express.Express {
@@ -56,6 +58,7 @@ export function createApp(): express.Express {
   app.use('/api/v1', createAuthRouter(authModule));
   app.use('/api/v1', createContactRouter(createContactModule(), authModule.authenticate));
   app.use('/api/v1', createDashboardRouter(createDashboardModule(), authModule.authenticate));
+  app.use('/api/v1', createImportRouter(createImportModule(), authModule.authenticate));
 
   app.use(notFoundMiddleware);
   app.use(errorMiddleware);

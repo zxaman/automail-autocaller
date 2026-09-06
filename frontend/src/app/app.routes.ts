@@ -72,8 +72,8 @@ export const APP_ROUTES: Routes = [
         path: 'imports',
         title: 'Imports · AutoCall & AutoMail',
         loadComponent: () =>
-          import('./features/imports/imports-page/imports-page.component').then(
-            (m) => m.ImportsPageComponent,
+          import('./features/imports/import-wizard-page/import-wizard-page.component').then(
+            (m) => m.ImportWizardPageComponent,
           ),
       },
       {
