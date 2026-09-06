@@ -130,6 +130,42 @@ export class ComposePageService {
     }
   }
 
+  /**
+   * Seeds the composer from a follow-up draft prepared for one contact.
+   *
+   * Applied after `load()` so the contact list exists, and it only ever fills
+   * the draft - nothing is sent, and the user edits it like any other email.
+   */
+  public applyFollowUp(draft: {
+    contactId: string;
+    subject: string;
+    body: string;
+  }): void {
+    const known = this.contactsSignal().some((contact) => contact.id === draft.contactId);
+
+    if (known) {
+      this.selectedIdsSignal.set(new Set([draft.contactId]));
+    }
+
+    this.subjectSignal.set(draft.subject);
+    // The draft arrives as plain text; newlines become paragraphs in the editor.
+    this.bodyHtmlSignal.set(
+      draft.body
+        .split('\n')
+        .map((line) => (line.trim().length === 0 ? '<p><br></p>' : `<p>${this.escapeHtml(line)}</p>`))
+        .join(''),
+    );
+  }
+
+  /** Draft copy is user-facing text, never markup: escape before embedding. */
+  private escapeHtml(value: string): string {
+    return value
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
   public toggleRecipient(contactId: string): void {
     const next = new Set(this.selectedIdsSignal());
     if (!next.delete(contactId)) {

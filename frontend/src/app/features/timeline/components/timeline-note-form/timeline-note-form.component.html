@@ -1,0 +1,26 @@
+<form class="note-form" (submit)="$event.preventDefault(); submit()">
+  <label class="note-form__label" for="timeline-note">Add a note</label>
+
+  <textarea
+    id="timeline-note"
+    class="note-form__input"
+    rows="2"
+    [attr.maxlength]="maxLength"
+    placeholder="What came out of this conversation?"
+    [value]="body()"
+    (input)="onInput($event)"
+  ></textarea>
+
+  <div class="note-form__footer">
+    <span class="note-form__count">{{ body().length }} / {{ maxLength }}</span>
+
+    <app-ui-button
+      type="submit"
+      size="sm"
+      [disabled]="!canSubmit()"
+      [loading]="isSaving()"
+    >
+      Save note
+    </app-ui-button>
+  </div>
+</form>

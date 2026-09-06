@@ -1,0 +1,128 @@
+<section class="timeline">
+  <header class="timeline__toolbar">
+    <div class="timeline__filters" role="group" aria-label="Filter timeline by type">
+      @for (kind of filterKinds; track kind) {
+        <button
+          type="button"
+          class="timeline__filter"
+          [class.timeline__filter--active]="isFilterActive(kind)"
+          [attr.aria-pressed]="isFilterActive(kind)"
+          (click)="state.toggleKind(kind)"
+        >
+          <app-ui-icon [name]="iconFor(kind)" size="sm" />
+          {{ labelFor(kind) }}
+        </button>
+      }
+
+      @if (state.activeKinds().length > 0) {
+        <button type="button" class="timeline__filter-clear" (click)="state.clearFilters()">
+          Show all
+        </button>
+      }
+    </div>
+  </header>
+
+  <app-timeline-note-form
+    [isSaving]="state.isSavingNote()"
+    (noteSubmitted)="onNoteSubmitted($event)"
+  />
+
+  @if (state.isLoading()) {
+    <app-ui-loading-spinner label="Loading history" />
+  } @else if (state.errorMessage()) {
+    <app-ui-error-state
+      [message]="state.errorMessage()!"
+      (retry)="state.load(contactId())"
+    />
+  } @else if (state.isEmpty()) {
+    <app-ui-empty-state
+      icon="inbox"
+      title="No activity yet"
+      description="Calls, emails, notes, and imports for this contact appear here in order."
+    />
+  } @else if (state.visibleEntries().length === 0) {
+    <app-ui-empty-state
+      icon="search"
+      title="Nothing matches this filter"
+      description="Try showing all activity types."
+      actionLabel="Show all"
+      (actionTriggered)="state.clearFilters()"
+    />
+  } @else {
+    @for (group of state.groups(); track group.label) {
+      <section class="timeline__group">
+        <h3 class="timeline__day">{{ group.label }}</h3>
+
+        <ol class="timeline__list">
+          @for (entry of group.entries; track entry.id) {
+            <li class="timeline__item timeline__item--{{ entry.kind }}">
+              <span class="timeline__marker" aria-hidden="true">
+                <app-ui-icon [name]="iconFor(entry.kind)" size="sm" />
+              </span>
+
+              <div class="timeline__body">
+                <div class="timeline__heading">
+                  <span class="timeline__kind">{{ labelFor(entry.kind) }}</span>
+                  <span class="timeline__title">{{ entry.title }}</span>
+
+                  @if (entry.status) {
+                    <app-ui-status-badge [status]="entry.status" />
+                  }
+                </div>
+
+                @if (entry.description) {
+                  <p class="timeline__description">{{ entry.description }}</p>
+                }
+
+                <div class="timeline__meta">
+                  <time [attr.datetime]="entry.occurredAt">
+                    {{ entry.occurredAt | appRelativeTime }}
+                  </time>
+
+                  @if (entry.durationSeconds) {
+                    <span>{{ entry.durationSeconds | appDuration }}</span>
+                  }
+                </div>
+
+                @if (entry.attachments.length > 0) {
+                  <ul class="timeline__attachments">
+                    @for (attachment of entry.attachments; track attachment.id) {
+                      <li class="timeline__attachment">
+                        <app-ui-icon name="inbox" size="sm" />
+                        {{ attachment.fileName }}
+                      </li>
+                    }
+                  </ul>
+                }
+
+                <div class="timeline__actions">
+                  @if (entry.canFollowUp) {
+                    <!-- Offered only for a finished call, where a follow-up
+                         email is the natural next step. -->
+                    <app-ui-button
+                      variant="ghost"
+                      size="sm"
+                      (pressed)="followUpRequested.emit(entry)"
+                    >
+                      Send follow-up email
+                    </app-ui-button>
+                  }
+
+                  @if (entry.kind === 'note') {
+                    <app-ui-button
+                      variant="ghost"
+                      size="sm"
+                      (pressed)="state.deleteNote(entry)"
+                    >
+                      Delete note
+                    </app-ui-button>
+                  }
+                </div>
+              </div>
+            </li>
+          }
+        </ol>
+      </section>
+    }
+  }
+</section>

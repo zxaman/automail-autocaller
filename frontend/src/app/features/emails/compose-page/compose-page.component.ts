@@ -1,5 +1,7 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
 import { DomSanitizer, type SafeHtml } from '@angular/platform-browser';
+import { ActivatedRoute } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
 
 import { UiButtonComponent } from '../../../shared/components/ui-button/ui-button.component';
 import { UiCardComponent } from '../../../shared/components/ui-card/ui-card.component';
@@ -8,6 +10,7 @@ import { UiErrorStateComponent } from '../../../shared/components/ui-error-state
 import { UiLoadingSpinnerComponent } from '../../../shared/components/ui-loading-spinner/ui-loading-spinner.component';
 import { UiStatusBadgeComponent } from '../../../shared/components/ui-status-badge/ui-status-badge.component';
 import { RelativeTimePipe } from '../../../shared/pipes/relative-time.pipe';
+import { TimelineService } from '../../timeline/services/timeline.service';
 import { TEMPLATE_VARIABLES } from '../models/email.model';
 import { ComposePageService } from './compose-page.service';
 
@@ -37,11 +40,45 @@ import { ComposePageService } from './compose-page.service';
 export class ComposePageComponent implements OnInit {
   protected readonly state = inject(ComposePageService);
   private readonly sanitizer = inject(DomSanitizer);
+  private readonly route = inject(ActivatedRoute);
+  private readonly timelineService = inject(TimelineService);
 
   protected readonly variables = TEMPLATE_VARIABLES;
 
   public ngOnInit(): void {
-    void this.state.load();
+    void this.initialize();
+  }
+
+  /**
+   * Loads the composer, then applies a follow-up prefill when the timeline
+   * sent us here with `?followUpContactId=...`.
+   *
+   * The prefill runs after the load so the recipient can be preselected from
+   * the loaded contact list.
+   */
+  private async initialize(): Promise<void> {
+    await this.state.load();
+
+    const params = this.route.snapshot.queryParamMap;
+    const contactId = params.get('followUpContactId');
+
+    if (!contactId) {
+      return;
+    }
+
+    try {
+      const draft = await firstValueFrom(
+        this.timelineService.getFollowUpDraft(contactId, params.get('callId') ?? undefined),
+      );
+
+      this.state.applyFollowUp({
+        contactId: draft.contactId,
+        subject: draft.subject,
+        body: draft.body,
+      });
+    } catch {
+      // A failed prefill must not block composing an email by hand.
+    }
   }
 
   protected onSubjectInput(event: Event): void {

@@ -370,3 +370,31 @@ Correctness details worth remembering:
 
 Recording (former Phase 11) was cancelled and physically removed from the contract, the model,
 and `.env.example`.
+
+## Phase 12 - Unified Communication Timeline
+
+A contact's history lives in four collections (calls, emails, notes, import batches), so no
+single query can order it. The service reads each source workspace-scoped, normalizes every
+record to one `TimelineEntryDto` shape, and merges in memory. Normalizing first is what lets
+the view sort by time alone without knowing where an entry came from.
+
+Ownership is checked once, up front, by loading the contact within the workspace scope. If
+that fails nothing else is read, and the error is 404 rather than 403 so the API never
+confirms that an id exists in another workspace.
+
+Ordering uses the moment the thing happened, not when the row was written: a call sorts by
+`startedAt` and an email by `sentAt`, falling back to `createdAt` only when unsent. An email
+drafted before a call but sent after it therefore lands after the call, which is what a user
+expects to read.
+
+Notes are the only entry a user writes directly. They may reference a call, but only one
+inside the same workspace.
+
+Follow-up: a finished call (completed / no_answer / busy / failed) offers a follow-up email.
+An in-progress call does not, because the outcome is not known yet. The draft is built
+server-side and the link carries only ids, so no message content travels through the URL.
+The composer prefills and stops there - nothing is ever sent automatically.
+
+Gotcha worth keeping: `router.use(authenticate)` on a router mounted at the shared `/api/v1`
+path also intercepts unmatched paths, turning the unknown-route 404 into a misleading 401.
+Attach `authenticate` per route instead. The existing `app.spec.ts` not-found test caught it.

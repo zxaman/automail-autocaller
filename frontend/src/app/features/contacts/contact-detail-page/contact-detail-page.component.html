@@ -112,12 +112,11 @@
 
     <app-ui-card
       title="Communication timeline"
-      subtitle="Calls, emails, recordings, and attachments for this contact"
+      subtitle="Calls, emails, notes, and attachments for this contact"
     >
-      <app-ui-empty-state
-        icon="inbox"
-        title="No activity recorded yet"
-        description="Calls and emails appear here automatically once the calling and email phases are enabled."
+      <app-contact-timeline
+        [contactId]="person.id"
+        (followUpRequested)="onFollowUpRequested($event)"
       />
     </app-ui-card>
   }

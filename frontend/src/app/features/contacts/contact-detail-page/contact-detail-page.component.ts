@@ -15,6 +15,8 @@ import { RelativeTimePipe } from '../../../shared/pipes/relative-time.pipe';
 import { ContactFormDialogService } from '../contact-form-dialog/contact-form-dialog.service';
 import type { Contact } from '../models/contact.model';
 import { ContactService } from '../services/contact.service';
+import { ContactTimelineComponent } from '../../timeline/components/contact-timeline/contact-timeline.component';
+import type { TimelineEntry } from '../../timeline/models/timeline.model';
 import { ContactDetailPageService } from './contact-detail-page.service';
 
 /** Contact profile: summary, action bar, and the communication timeline. */
@@ -31,6 +33,7 @@ import { ContactDetailPageService } from './contact-detail-page.service';
     UiErrorStateComponent,
     UiIconComponent,
     UiLoadingSpinnerComponent,
+    ContactTimelineComponent,
   ],
   providers: [ContactDetailPageService],
   templateUrl: './contact-detail-page.component.html',
@@ -53,6 +56,24 @@ export class ContactDetailPageComponent implements OnInit {
   protected readonly hasError = this.detailService.hasError;
   protected readonly errorMessage = this.detailService.errorMessage;
   protected readonly notFound = this.detailService.notFound;
+
+  /**
+   * Hands the composer a contact and call to prefill from.
+   *
+   * The draft itself is built server-side, so the link only carries ids and no
+   * message content travels through the URL.
+   */
+  protected onFollowUpRequested(entry: TimelineEntry): void {
+    const contact = this.contact();
+
+    if (!contact) {
+      return;
+    }
+
+    void this.router.navigate(['/emails'], {
+      queryParams: { followUpContactId: contact.id, callId: entry.sourceId },
+    });
+  }
 
   constructor() {
     // Reload when the route id changes without a component re-creation.
