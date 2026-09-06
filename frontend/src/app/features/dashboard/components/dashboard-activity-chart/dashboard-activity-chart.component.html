@@ -1,0 +1,70 @@
+<figure class="activity-chart" [class.activity-chart--loading]="loading()">
+  <figcaption class="activity-chart__legend">
+    <span class="activity-chart__legend-item">
+      <span class="activity-chart__swatch activity-chart__swatch--calls" aria-hidden="true"></span>
+      Calls
+    </span>
+    <span class="activity-chart__legend-item">
+      <span class="activity-chart__swatch activity-chart__swatch--emails" aria-hidden="true"></span>
+      Emails
+    </span>
+  </figcaption>
+
+  <svg
+    class="activity-chart__svg"
+    [attr.viewBox]="'0 0 ' + chart().width + ' ' + chart().height"
+    preserveAspectRatio="none"
+    role="img"
+    [attr.aria-label]="
+      'Daily calls and emails, peaking at ' + chart().maxValue + ' per day'
+    "
+  >
+    @for (line of chart().gridLines; track line.y) {
+      <line
+        class="activity-chart__grid"
+        x1="0"
+        [attr.y1]="line.y"
+        [attr.x2]="chart().width"
+        [attr.y2]="line.y"
+      />
+    }
+
+    @for (bar of chart().bars; track bar.date; let i = $index) {
+      <g class="activity-chart__group">
+        <title>{{ bar.tooltip }}</title>
+        <rect
+          class="activity-chart__bar activity-chart__bar--calls"
+          [attr.x]="bar.x"
+          [attr.y]="bar.callsY"
+          [attr.width]="bar.barWidth"
+          [attr.height]="bar.callsHeight"
+          rx="2"
+        />
+        <rect
+          class="activity-chart__bar activity-chart__bar--emails"
+          [attr.x]="bar.x + bar.barWidth + 2"
+          [attr.y]="bar.emailsY"
+          [attr.width]="bar.barWidth"
+          [attr.height]="bar.emailsHeight"
+          rx="2"
+        />
+        @if (i % labelStep() === 0) {
+          <text
+            class="activity-chart__tick"
+            [attr.x]="bar.x + bar.barWidth"
+            [attr.y]="chart().height - 8"
+            text-anchor="middle"
+          >
+            {{ bar.label }}
+          </text>
+        }
+      </g>
+    }
+  </svg>
+
+  @if (chart().isEmpty && !loading()) {
+    <p class="activity-chart__empty text-muted">
+      No calls or emails were recorded in this period.
+    </p>
+  }
+</figure>

@@ -17,7 +17,8 @@ A centralized communication workspace for importing contacts, making provider-ba
 - Phase 2 authentication and workspace foundation: complete.
 - Phase 3 Angular foundation and design system: complete (see `frontend/README.md`).
 - Phase 4 contacts: complete.
-- Remaining feature phases (dashboard, imports, AutoMail, AutoCall) are not implemented yet.
+- Phase 5 dashboard foundation: complete.
+- Remaining feature phases (imports, AutoMail, AutoCall) are not implemented yet.
 
 ## Authentication
 
@@ -55,6 +56,31 @@ Query parameters: `page`, `pageSize` (max 100), `search`, `tag`, `company`, `sou
 
 Phone numbers are normalized to E.164 before storage, so `9876543210`, `09876543210`, and
 `+91 98765 43210` are recognized as the same number for duplicate detection.
+
+## Dashboard
+
+`GET /api/v1/dashboard` returns the whole workspace snapshot in one request: overview
+counters, a daily activity series, and the five most recent calls, emails, and imports.
+
+Every number is produced by MongoDB aggregation pipelines that begin with a `$match` on the
+caller's `workspaceId`, so no cross-workspace document can enter a result and the client
+never has to compute a metric itself.
+
+| Parameter | Values | Purpose |
+| --- | --- | --- |
+| `preset` | `today`, `week`, `month`, `custom` | Range for the activity series (default `today`) |
+| `timezone` | IANA zone, e.g. `Asia/Kolkata` | Day boundaries and bucketing (default `UTC`) |
+| `from`, `to` | `YYYY-MM-DD` | Required when `preset=custom`, max 366 days |
+
+Days are bucketed with MongoDB's `$dateToString` in the caller's timezone, so a call placed
+at 02:00 IST is counted on the correct local date rather than the previous UTC day. An
+unknown timezone falls back to `UTC` instead of failing the request. The activity series
+always contains one point per day, including days with no activity, so charts render a
+continuous axis.
+
+The `calls`, `emails`, and `import_batches` collections are introduced here only so the
+dashboard has something to aggregate; the logic that writes to them arrives in the phases
+that own those features.
 
 ## Local backend setup
 

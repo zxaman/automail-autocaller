@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 
 import { AuthService } from '../../../core/services/auth.service';
 import { UiButtonComponent } from '../../../shared/components/ui-button/ui-button.component';
@@ -11,9 +11,12 @@ import { UiPageHeaderComponent } from '../../../shared/components/ui-page-header
 import { UiStatusBadgeComponent } from '../../../shared/components/ui-status-badge/ui-status-badge.component';
 import { DurationPipe } from '../../../shared/pipes/duration.pipe';
 import { RelativeTimePipe } from '../../../shared/pipes/relative-time.pipe';
+import { DashboardActivityChartComponent } from '../components/dashboard-activity-chart/dashboard-activity-chart.component';
+import { DashboardRangeFilterComponent } from '../components/dashboard-range-filter/dashboard-range-filter.component';
+import type { DashboardRangeSelection } from './dashboard-page.model';
 import { DashboardPageService } from './dashboard-page.service';
 
-/** Workspace overview: metrics, recent activity, and quick actions. */
+/** Workspace overview: metrics, activity trend, recent history, quick actions. */
 @Component({
   selector: 'app-dashboard-page',
   standalone: true,
@@ -28,6 +31,8 @@ import { DashboardPageService } from './dashboard-page.service';
     UiMetricCardComponent,
     UiPageHeaderComponent,
     UiStatusBadgeComponent,
+    DashboardActivityChartComponent,
+    DashboardRangeFilterComponent,
   ],
   providers: [DashboardPageService],
   templateUrl: './dashboard-page.component.html',
@@ -37,9 +42,12 @@ import { DashboardPageService } from './dashboard-page.service';
 export class DashboardPageComponent implements OnInit {
   private readonly dashboardPageService = inject(DashboardPageService);
   private readonly authService = inject(AuthService);
+  private readonly router = inject(Router);
 
   protected readonly metrics = this.dashboardPageService.metrics;
   protected readonly snapshot = this.dashboardPageService.snapshot;
+  protected readonly activity = this.dashboardPageService.activity;
+  protected readonly range = this.dashboardPageService.range;
   protected readonly isLoading = this.dashboardPageService.isLoading;
   protected readonly hasError = this.dashboardPageService.hasError;
   protected readonly errorMessage = this.dashboardPageService.errorMessage;
@@ -51,5 +59,17 @@ export class DashboardPageComponent implements OnInit {
 
   protected reload(): void {
     this.dashboardPageService.load();
+  }
+
+  protected changeRange(selection: DashboardRangeSelection): void {
+    this.dashboardPageService.changeRange(selection);
+  }
+
+  /** Recent rows link through to the contact when the record still has one. */
+  protected openContact(contactId: string | null): void {
+    if (!contactId) {
+      return;
+    }
+    void this.router.navigate(['/contacts', contactId]);
   }
 }

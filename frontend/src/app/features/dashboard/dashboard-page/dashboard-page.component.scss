@@ -75,3 +75,21 @@
     gap: var(--space-1);
   }
 }
+
+.dashboard__item--linked {
+  cursor: pointer;
+
+  &:hover .dashboard__item-title {
+    color: var(--color-primary);
+  }
+}
+
+@media (max-width: 1100px) {
+  .dashboard__metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dashboard__activity {
+    grid-template-columns: 1fr;
+  }
+}

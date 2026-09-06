@@ -175,3 +175,31 @@ Current phase name and status.
 - Added `.env.example` with API, MongoDB, Redis, CORS, logging, and proxy configuration.
 - Added Docker Compose MongoDB and Redis services.
 - No provider credentials configured.
+
+## Phase 5 - Dashboard foundation
+
+Delivered `GET /api/v1/dashboard`, a single aggregation-backed snapshot endpoint, and wired
+the existing dashboard page to it.
+
+Backend:
+- `modules/calls/call.model.ts`, `modules/emails/email.model.ts`,
+  `modules/imports/import-batch.model.ts` - minimal schemas so the dashboard has collections
+  to aggregate. Writing to them belongs to phases 6, 8, and 10.
+- `shared/utils/date-range.ts` - preset and custom range resolution. `from` inclusive, `to`
+  exclusive, DST-safe, unknown timezones fall back to UTC. 12 tests.
+- `modules/dashboard/` - types, zod validation, repository (`$group` pipelines and
+  `$dateToString` day bucketing, always scoped by `workspaceId`), service (derives rates and
+  averages, fills empty days), controller, module. `routes/dashboard.routes.ts`.
+
+Frontend:
+- `dashboard-page.model.ts` updated to the real contract; service now owns range state and
+  sends the browser timezone.
+- `components/dashboard-range-filter/` - preset segmented control plus custom date pair.
+- `components/dashboard-activity-chart/` - inline SVG grouped bar chart. Geometry lives in a
+  separate injectable service so it is testable without rendering. No charting dependency.
+
+Tests after phase 5: backend 85 pass + 26 skipped, frontend 58 pass.
+
+Decision: the "today" metric cards stay pinned to today even when a wider range is selected,
+so the range control only affects the activity chart. Mixing the two made the cards
+ambiguous.

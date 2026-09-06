@@ -13,6 +13,12 @@
     </div>
   </app-ui-page-header>
 
+  <app-dashboard-range-filter
+    [selection]="range()"
+    [disabled]="isLoading()"
+    (rangeChange)="changeRange($event)"
+  />
+
   @if (hasError()) {
     <app-ui-error-state
       title="Dashboard unavailable"
@@ -27,12 +33,23 @@
     }
   </section>
 
+  <app-ui-card
+    title="Activity trend"
+    subtitle="Calls and emails per day across the selected range"
+  >
+    <app-dashboard-activity-chart [points]="activity()" [loading]="isLoading()" />
+  </app-ui-card>
+
   <section class="dashboard__activity">
     <app-ui-card title="Recent calls" subtitle="Latest calls placed from this workspace">
       @if (snapshot()?.recentCalls?.length) {
         <ul class="dashboard__list">
           @for (call of snapshot()!.recentCalls; track call.id) {
-            <li class="dashboard__item">
+            <li
+              class="dashboard__item"
+              [class.dashboard__item--linked]="call.contactId"
+              (click)="openContact(call.contactId)"
+            >
               <div class="dashboard__item-main">
                 <span class="dashboard__item-title">{{ call.contactName }}</span>
                 <span class="dashboard__item-sub text-secondary">
@@ -88,7 +105,7 @@
               <div class="dashboard__item-main">
                 <span class="dashboard__item-title">{{ batch.fileName }}</span>
                 <span class="dashboard__item-sub text-secondary tabular">
-                  {{ batch.successfulRows }} contacts
+                  {{ batch.successfulRows }} of {{ batch.totalRows }} rows imported
                 </span>
               </div>
               <span class="text-muted">{{ batch.importedAt | appRelativeTime }}</span>
