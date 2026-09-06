@@ -181,7 +181,7 @@ export class CallService {
       return { accepted: false, reason: transition.reason };
     }
 
-    const changes: Parameters<CallRepository['applyStatus']>[2] = {};
+    const changes: Parameters<CallRepository['applyStatus']>[3] = {};
 
     if (isAnsweredStatus(transition.status) && !call.answeredAt) {
       changes.answeredAt = event.occurredAt;
@@ -197,7 +197,12 @@ export class CallService {
       }
     }
 
-    await this.repository.applyStatus(call._id as Types.ObjectId, transition.status, changes);
+    await this.repository.applyStatus(
+      { workspaceId: call.workspaceId },
+      call._id as Types.ObjectId,
+      transition.status,
+      changes,
+    );
 
     // A connected call is a real touchpoint; an unanswered one is not.
     if (isAnsweredStatus(transition.status) && call.contactId) {
@@ -238,9 +243,12 @@ export class CallService {
       }
     }
 
-    const updated = await this.repository.applyStatus(call._id as Types.ObjectId, 'canceled', {
-      endedAt: new Date(),
-    });
+    const updated = await this.repository.applyStatus(
+      scope,
+      call._id as Types.ObjectId,
+      'canceled',
+      { endedAt: new Date() },
+    );
 
     return toCallDto(updated ?? call);
   }

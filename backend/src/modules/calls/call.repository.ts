@@ -73,7 +73,13 @@ export class CallRepository {
     return { items, totalItems };
   }
 
+  /*
+   * Scoped by workspace as well as id. The webhook path reaches this with a
+   * call resolved from a provider payload, so the tenant is re-asserted in the
+   * query rather than trusted from the caller.
+   */
   public async applyStatus(
+    scope: CallScope,
     callId: Types.ObjectId | string,
     status: CallStatus,
     changes: {
@@ -84,8 +90,8 @@ export class CallRepository {
       failureCode?: string | null;
     } = {},
   ): Promise<CallDocument | null> {
-    return CallModel.findByIdAndUpdate(
-      callId,
+    return CallModel.findOneAndUpdate(
+      { _id: callId, workspaceId: scope.workspaceId },
       { $set: { status, ...changes } },
       { new: true },
     ).exec();

@@ -292,3 +292,33 @@ npm run mobile:sync          # after every web build
 Set `nativeApiOrigin` in `frontend/src/environments/environment.prod.ts` to the HTTPS API
 origin before a release build. The generated `frontend/android` and `frontend/ios` folders are
 regenerable and therefore not committed.
+
+
+## Security
+
+Security controls are enforced by tests in `backend/src/security/`, which run
+as part of `npm run api:test`.
+
+| Control | Where | Test |
+| --- | --- | --- |
+| Every route requires a session | `middleware/auth.middleware.ts` | `route-authorization.spec.ts` enumerates the live router, so new routes are covered automatically |
+| Secrets never reach the logs | `infrastructure/logger/logger.ts` | `log-redaction.spec.ts` asserts on real pino output at three nesting depths |
+| Queries cannot cross a workspace | `modules/*/*.repository.ts` | `repository-scoping.spec.ts` |
+| Rate limits actually throttle | `middleware/rate-limit.middleware.ts` | `rate-limit.spec.ts` |
+| Webhooks verified by HMAC | `infrastructure/telephony/exotel-provider.ts` | signature checked before the body is parsed |
+| Gmail App Passwords encrypted at rest | `infrastructure/crypto/credential-cipher.ts` | AES-256-GCM, `select: false`, never returned by the API |
+
+Two routes are public by design: `POST /api/v1/auth/google` (sign-in, no
+session exists yet) and the telephony webhook (authenticated by HMAC, since a
+provider cannot send a cookie).
+
+### Operational notes
+
+- `CREDENTIAL_ENCRYPTION_KEY` and `TELEPHONY_WEBHOOK_SECRET` must be set from a
+  secret manager, never committed. Rotating the encryption key requires
+  re-encrypting stored credentials; there is no migration script yet.
+- Rate limits are held in process memory, so effective limits multiply by
+  instance count behind a load balancer. Move to a shared store before scaling
+  horizontally.
+- Run `npm audit` in both `backend/` and `frontend/` before a release; it is
+  not yet wired into CI.

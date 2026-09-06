@@ -82,7 +82,11 @@ describe('EmailWorker', () => {
         text: 'Hi',
       }),
     );
-    expect(repository.markSent).toHaveBeenCalledWith(emailId, '<id@gmail>');
+    expect(repository.markSent).toHaveBeenCalledWith(
+      { workspaceId },
+      emailId,
+      '<id@gmail>',
+    );
   });
 
   it('sends one message per job, never a batch', async () => {
@@ -141,6 +145,7 @@ describe('EmailWorker', () => {
     await worker.handle(payload, context(1));
 
     expect(repository.markFailed).toHaveBeenCalledWith(
+      { workspaceId },
       emailId,
       'SMTP_AUTH_FAILED',
       'Bad credential',
@@ -170,7 +175,12 @@ describe('EmailWorker', () => {
 
     await worker.handle(payload, context(3, 3));
 
-    expect(repository.markFailed).toHaveBeenCalledWith(emailId, 'SMTP_TIMEOUT', 'Timed out');
+    expect(repository.markFailed).toHaveBeenCalledWith(
+      { workspaceId },
+      emailId,
+      'SMTP_TIMEOUT',
+      'Timed out',
+    );
   });
 
   it('fails the send when an unusable credential is stored', async () => {
@@ -180,6 +190,7 @@ describe('EmailWorker', () => {
 
     expect(smtp.sendMessage).not.toHaveBeenCalled();
     expect(repository.markFailed).toHaveBeenCalledWith(
+      { workspaceId },
       emailId,
       'EMAIL_ACCOUNT_UNAVAILABLE',
       'This account is disabled',
@@ -212,7 +223,7 @@ describe('EmailWorker', () => {
   it('marks the attempt count before sending, so retries are visible', async () => {
     await worker.handle(payload, context());
 
-    expect(repository.markSending).toHaveBeenCalledWith(emailId);
+    expect(repository.markSending).toHaveBeenCalledWith({ workspaceId }, emailId);
     expect(repository.markSending.mock.invocationCallOrder[0]).toBeLessThan(
       smtp.sendMessage.mock.invocationCallOrder[0]!,
     );

@@ -334,6 +334,7 @@ export class EmailService {
 
     const created = await this.repository.createMany(scope, ownerId, records);
     await this.repository.incrementAttachmentUsage(
+      scope,
       attachments.map((attachment) => attachment._id as Types.ObjectId),
     );
 
@@ -390,7 +391,7 @@ export class EmailService {
       throw new AppError('No failed email to retry', 404, 'EMAIL_NOT_RETRYABLE');
     }
 
-    const requeued = await this.repository.resetForRetry(emailId);
+    const requeued = await this.repository.resetForRetry(scope, emailId);
 
     if (!requeued) {
       throw new AppError('No failed email to retry', 404, 'EMAIL_NOT_RETRYABLE');

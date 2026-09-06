@@ -459,3 +459,84 @@ weaken the web build to match the phone. A test asserts nothing is written there
 
 `frontend/android` and `frontend/ios` are gitignored - regenerable from config plus the web
 build.
+
+
+## Phase 15 — Security Hardening
+
+A full audit of the delivered surface, with each finding either fixed or
+documented. The audit was run empirically wherever possible: a claim like
+"secrets are redacted" is only trustworthy if something actually reads the log
+output back.
+
+### Finding 1 (high) — every secret was being logged in plaintext
+
+`pino`'s `redact.paths` matches paths *literally*: a bare key such as
+`token` does not match `config.token` or `err.ctx.token`. The original list
+was written as bare keys, so it silently stopped covering anything nested,
+and every secret added since Phase 7 was reaching the log stream in the
+clear — `exotelApiToken`, `webhookSecret`, `authToken`, `encryptionKey`,
+`sessionToken`, `MONGODB_URI` (which embeds credentials) and more.
+
+This was proved with a probe that captured `process.stdout` before it was
+fixed, and the probe is now a committed test
+(`src/security/log-redaction.spec.ts`, 63 cases) that asserts on real pino
+output at three nesting depths rather than on the shape of the path list.
+`logger.ts` now generates `key`, `*.key` and `*.*.key` for each secret name
+and exports `LOG_REDACT_PATHS` so the suite checks the real value.
+
+### Finding 2 (medium) — six writes were not workspace-scoped
+
+`markSending`, `markSent`, `markFailed`, `resetForRetry`, `applyStatus` and
+`incrementAttachmentUsage` filtered by `_id` alone. None was exploitable
+today, because every caller had already resolved the record within a
+workspace. They were fixed anyway: an authorization boundary that depends on
+callers being careful is one refactor away from being a cross-tenant write.
+All six now take a scope and filter on `workspaceId`, and
+`findByIdAndUpdate` is banned outright in workspace-owned repositories in
+favour of `findOneAndUpdate`, which can express a tenant filter.
+
+`src/security/repository-scoping.spec.ts` enforces this statically. That
+matters here because the integration tests skip when no MongoDB is
+reachable, so a dynamic-only check would have proved nothing in this
+environment. The two extra cases (`resetForRetry`, `applyStatus`) were found
+by that test, not by reading the code.
+
+### Finding 3 (low) — the rate limiters were never exercised
+
+They relax to a 100,000 ceiling under `NODE_ENV=test`, so no existing test
+could ever trip one. The production values moved into an exported
+`RATE_LIMITS` constant, and the security suite builds its own limiter from
+those same values to prove they actually throttle and return 429.
+
+### Verified with no change required
+
+- **Authorization**: every one of the 47 mounted routes rejects an
+  anonymous caller. Verified by a test that enumerates the Express router at
+  runtime, so routes added in later phases are covered automatically. The two
+  public routes are allowlisted with a reason: sign-in has no session yet,
+  and the telephony webhook is authenticated by HMAC because a provider has
+  no cookie.
+- **Webhook signatures**: HMAC-SHA256 over the raw body, compared with
+  `timingSafeEqual`, and the body is parsed only after the signature matches.
+- **Sessions**: opaque random tokens, only the SHA-256 hash is stored, lookups
+  filter on `expiresAt`, and a TTL index reaps expired rows.
+- **Credentials**: the ciphertext field is `select: false`, so it is excluded
+  from every query unless asked for, and no response DTO carries a password.
+- **Uploads**: memory storage, 10 MB cap, single file, extension allowlist —
+  no filesystem path is derived from user input, so there is no traversal
+  surface.
+- **Error responses**: unknown errors collapse to a generic 500 with no stack
+  or driver detail.
+- **Secrets in Git**: a scan of all tracked files for key patterns and
+  hardcoded assignments found nothing; only `.env.example` is tracked.
+- **Dependencies**: `npm audit` reports 0 vulnerabilities in both packages.
+
+### Known limitations
+
+- Cross-tenant *runtime* behaviour is asserted statically, not by two real
+  users hitting a live database, because no MongoDB is reachable here. The
+  26 integration tests still skip.
+- Rate limiting is per-process in-memory, so limits multiply by instance
+  count behind a load balancer. A shared store is needed before scaling out.
+- There is no automated dependency scanning in CI yet; `npm audit` was run
+  by hand.

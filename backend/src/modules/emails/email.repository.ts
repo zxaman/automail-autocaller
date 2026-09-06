@@ -79,39 +79,60 @@ export class EmailRepository {
     return { items, totalItems };
   }
 
-  public async markSending(emailId: string): Promise<EmailDocument | null> {
-    return EmailModel.findByIdAndUpdate(
-      emailId,
+  /*
+   * The status transitions below are driven by the send worker, which already
+   * resolves the workspace from the job payload. They still filter on
+   * workspaceId so that a malformed or replayed job can never write across a
+   * tenant boundary: the scope is enforced by the query, not by the caller.
+   */
+
+  public async markSending(
+    scope: EmailScope,
+    emailId: string,
+  ): Promise<EmailDocument | null> {
+    return EmailModel.findOneAndUpdate(
+      { _id: emailId, workspaceId: scope.workspaceId },
       { $set: { status: 'sending' satisfies EmailStatus }, $inc: { attemptCount: 1 } },
       { new: true },
     ).exec();
   }
 
-  public async markSent(emailId: string, providerMessageId: string): Promise<void> {
-    await EmailModel.findByIdAndUpdate(emailId, {
-      $set: {
-        status: 'sent' satisfies EmailStatus,
-        sentAt: new Date(),
-        providerMessageId,
-        failureReason: null,
-        failureCode: null,
+  public async markSent(
+    scope: EmailScope,
+    emailId: string,
+    providerMessageId: string,
+  ): Promise<void> {
+    await EmailModel.findOneAndUpdate(
+      { _id: emailId, workspaceId: scope.workspaceId },
+      {
+        $set: {
+          status: 'sent' satisfies EmailStatus,
+          sentAt: new Date(),
+          providerMessageId,
+          failureReason: null,
+          failureCode: null,
+        },
       },
-    }).exec();
+    ).exec();
   }
 
   public async markFailed(
+    scope: EmailScope,
     emailId: string,
     failureCode: string,
     failureReason: string,
   ): Promise<void> {
-    await EmailModel.findByIdAndUpdate(emailId, {
-      $set: {
-        status: 'failed' satisfies EmailStatus,
-        failedAt: new Date(),
-        failureCode,
-        failureReason,
+    await EmailModel.findOneAndUpdate(
+      { _id: emailId, workspaceId: scope.workspaceId },
+      {
+        $set: {
+          status: 'failed' satisfies EmailStatus,
+          failedAt: new Date(),
+          failureCode,
+          failureReason,
+        },
       },
-    }).exec();
+    ).exec();
   }
 
   /** Returns messages left mid-flight, e.g. by a restart, so they can requeue. */
@@ -133,9 +154,12 @@ export class EmailRepository {
     }).exec();
   }
 
-  public async resetForRetry(emailId: string): Promise<EmailDocument | null> {
-    return EmailModel.findByIdAndUpdate(
-      emailId,
+  public async resetForRetry(
+    scope: EmailScope,
+    emailId: string,
+  ): Promise<EmailDocument | null> {
+    return EmailModel.findOneAndUpdate(
+      { _id: emailId, workspaceId: scope.workspaceId },
       {
         $set: {
           status: 'queued' satisfies EmailStatus,
@@ -334,14 +358,18 @@ export class EmailRepository {
   }
 
   public async incrementAttachmentUsage(
+    scope: EmailScope,
     attachmentIds: readonly Types.ObjectId[],
   ): Promise<void> {
     if (attachmentIds.length === 0) {
       return;
     }
 
+    // Scoped so a forged attachment id cannot bump a counter in another
+    // workspace, and so the write cannot touch documents the caller never
+    // resolved.
     await EmailAttachmentModel.updateMany(
-      { _id: { $in: attachmentIds } },
+      { _id: { $in: attachmentIds }, workspaceId: scope.workspaceId },
       { $inc: { usageCount: 1 } },
     ).exec();
   }

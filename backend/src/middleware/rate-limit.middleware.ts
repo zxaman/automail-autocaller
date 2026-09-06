@@ -4,6 +4,27 @@ import { env } from '../config/environment';
 
 const isTest = env.NODE_ENV === 'test';
 
+/**
+ * Production limits, kept in one place so they can be asserted on.
+ *
+ * The limiters below relax to a very high ceiling under NODE_ENV=test so the
+ * functional suites are not throttled. That relaxation means the limiters are
+ * never exercised by those suites, so the security suite builds its own
+ * limiters from these values instead.
+ */
+export const RATE_LIMITS = {
+  global: { windowMs: 60_000, limit: 300 },
+  auth: { windowMs: 15 * 60_000, limit: 20 },
+  credential: { windowMs: 15 * 60_000, limit: 10 },
+  send: { windowMs: 60_000, limit: 20 },
+  call: { windowMs: 60_000, limit: 10 },
+} as const;
+
+/** Test builds relax the ceiling; production uses the real value. */
+function limitFor(limit: number): number {
+  return isTest ? 100_000 : limit;
+}
+
 function jsonLimitResponse(code: string, message: string) {
   return {
     success: false,
@@ -14,8 +35,8 @@ function jsonLimitResponse(code: string, message: string) {
 
 /** Broad protection for the whole API surface. */
 export const globalRateLimiter = rateLimit({
-  windowMs: 60_000,
-  limit: isTest ? 100_000 : 300,
+  windowMs: RATE_LIMITS.global.windowMs,
+  limit: limitFor(RATE_LIMITS.global.limit),
   standardHeaders: 'draft-7',
   legacyHeaders: false,
   message: jsonLimitResponse('RATE_LIMITED', 'Too many requests. Please retry shortly.'),
@@ -23,8 +44,8 @@ export const globalRateLimiter = rateLimit({
 
 /** Tighter limit on credential endpoints to blunt brute-force and token replay. */
 export const authRateLimiter = rateLimit({
-  windowMs: 15 * 60_000,
-  limit: isTest ? 100_000 : 20,
+  windowMs: RATE_LIMITS.auth.windowMs,
+  limit: limitFor(RATE_LIMITS.auth.limit),
   standardHeaders: 'draft-7',
   legacyHeaders: false,
   message: jsonLimitResponse('AUTH_RATE_LIMITED', 'Too many sign-in attempts. Please wait and retry.'),
@@ -36,8 +57,8 @@ export const authRateLimiter = rateLimit({
  * limit here would let an attacker probe App Passwords.
  */
 export const credentialRateLimiter = rateLimit({
-  windowMs: 15 * 60_000,
-  limit: isTest ? 100_000 : 10,
+  windowMs: RATE_LIMITS.credential.windowMs,
+  limit: limitFor(RATE_LIMITS.credential.limit),
   standardHeaders: 'draft-7',
   legacyHeaders: false,
   message: jsonLimitResponse(
@@ -52,8 +73,8 @@ export const credentialRateLimiter = rateLimit({
  * runaway scripts, not a substitute for the queue's own pacing.
  */
 export const sendRateLimiter = rateLimit({
-  windowMs: 60_000,
-  limit: isTest ? 100_000 : 20,
+  windowMs: RATE_LIMITS.send.windowMs,
+  limit: limitFor(RATE_LIMITS.send.limit),
   standardHeaders: 'draft-7',
   legacyHeaders: false,
   message: jsonLimitResponse(
@@ -68,8 +89,8 @@ export const sendRateLimiter = rateLimit({
  * one-at-a-time action rather than an auto-dialler.
  */
 export const callRateLimiter = rateLimit({
-  windowMs: 60_000,
-  limit: isTest ? 100_000 : 10,
+  windowMs: RATE_LIMITS.call.windowMs,
+  limit: limitFor(RATE_LIMITS.call.limit),
   standardHeaders: 'draft-7',
   legacyHeaders: false,
   message: jsonLimitResponse(

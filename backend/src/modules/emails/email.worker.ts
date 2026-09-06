@@ -54,6 +54,7 @@ export class EmailWorker {
 
     if (!accountId) {
       await this.repository.markFailed(
+        scope,
         payload.emailId,
         'EMAIL_ACCOUNT_MISSING',
         'No sending account is associated with this email',
@@ -61,7 +62,7 @@ export class EmailWorker {
       return;
     }
 
-    await this.repository.markSending(payload.emailId);
+    await this.repository.markSending(scope, payload.emailId);
 
     let credential;
     try {
@@ -69,6 +70,7 @@ export class EmailWorker {
     } catch (error) {
       // No usable credential is a permanent condition until the user acts.
       await this.repository.markFailed(
+        scope,
         payload.emailId,
         'EMAIL_ACCOUNT_UNAVAILABLE',
         error instanceof Error ? error.message : 'The sending account is unavailable',
@@ -91,7 +93,7 @@ export class EmailWorker {
     });
 
     if (result.success) {
-      await this.repository.markSent(payload.emailId, result.providerMessageId ?? '');
+      await this.repository.markSent(scope, payload.emailId, result.providerMessageId ?? '');
       logger.info(
         { emailId: payload.emailId, attempt: context.attempt },
         'Email accepted by the provider',
@@ -110,7 +112,7 @@ export class EmailWorker {
     }
 
     if (!isRetryable || isLastAttempt) {
-      await this.repository.markFailed(payload.emailId, failure.code, failure.message);
+      await this.repository.markFailed(scope, payload.emailId, failure.code, failure.message);
       logger.warn(
         { emailId: payload.emailId, code: failure.code, attempt: context.attempt, isRetryable },
         'Email delivery failed permanently',

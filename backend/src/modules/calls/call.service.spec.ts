@@ -212,6 +212,7 @@ describe('CallService', () => {
 
       expect(result.accepted).toBe(true);
       expect(repository['applyStatus']).toHaveBeenCalledWith(
+        { workspaceId },
         expect.anything(),
         'in_progress',
         expect.objectContaining({ answeredAt: expect.any(Date) }),
@@ -279,6 +280,7 @@ describe('CallService', () => {
       await service.handleWebhook('exotel', request);
 
       expect(repository['applyStatus']).toHaveBeenCalledWith(
+        { workspaceId },
         expect.anything(),
         'completed',
         expect.objectContaining({ durationSeconds: 73, endedAt: expect.any(Date) }),
@@ -323,6 +325,7 @@ describe('CallService', () => {
       await service.cancelCall(scope, 'id');
 
       expect(repository['applyStatus']).toHaveBeenCalledWith(
+        { workspaceId },
         expect.anything(),
         'canceled',
         expect.objectContaining({ endedAt: expect.any(Date) }),
