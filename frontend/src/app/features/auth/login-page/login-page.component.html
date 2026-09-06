@@ -1,5 +1,9 @@
 <div class="login">
   <section class="login__panel">
+    @if (isSubmitting()) {
+      <mat-progress-bar class="login__progress" mode="indeterminate" />
+    }
+
     <div class="login__brand">
       <img src="assets/logo.svg" alt="" width="44" height="44" />
       <div>
@@ -18,15 +22,17 @@
       <p class="login__error" role="alert">{{ errorMessage() }}</p>
     }
 
-    <app-ui-button
-      variant="primary"
-      size="lg"
-      [fullWidth]="true"
-      [loading]="submitting()"
-      (pressed)="continueWithGoogle()"
-    >
-      Continue with Google
-    </app-ui-button>
+    <div class="login__google">
+      <div #googleButton class="login__google-button" [class.is-hidden]="isUnavailable()"></div>
+
+      @if (isInitializing()) {
+        <app-ui-loading-spinner label="Loading Google sign-in" size="sm" [centered]="false" />
+      }
+
+      @if (isSubmitting()) {
+        <p class="login__status" role="status">Verifying your Google account…</p>
+      }
+    </div>
 
     <p class="login__legal">
       We never ask for your Gmail password. Gmail sending is connected separately with a Google

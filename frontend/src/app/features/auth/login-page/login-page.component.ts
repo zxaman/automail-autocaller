@@ -1,51 +1,52 @@
-import { ChangeDetectionStrategy, Component, inject, input } from '@angular/core';
+import {
+  AfterViewInit,
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  inject,
+  input,
+  viewChild,
+} from '@angular/core';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 
-import { UiButtonComponent } from '../../../shared/components/ui-button/ui-button.component';
+import { UiLoadingSpinnerComponent } from '../../../shared/components/ui-loading-spinner/ui-loading-spinner.component';
+import type { LoginRedirectReason } from './login-page.model';
 import { LoginPageService } from './login-page.service';
 
 /**
  * Google-only sign-in screen.
  *
- * The Google Identity Services client is wired up in the authentication phase.
- * Until the backend `/auth/google` endpoint and client ID exist, this screen
- * surfaces a clear, honest message instead of simulating a session.
+ * The official Google Identity Services button is rendered so the flow matches
+ * Google's branding and security requirements. No password field exists, and no
+ * session is ever simulated on the client.
  */
 @Component({
   selector: 'app-login-page',
   standalone: true,
-  imports: [UiButtonComponent],
+  imports: [MatProgressBarModule, UiLoadingSpinnerComponent],
   providers: [LoginPageService],
   templateUrl: './login-page.component.html',
   styleUrl: './login-page.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class LoginPageComponent {
+export class LoginPageComponent implements AfterViewInit {
   private readonly loginPageService = inject(LoginPageService);
 
   /** Bound from the query string by `withComponentInputBinding()`. */
   public readonly returnUrl = input<string>('/dashboard');
-  public readonly reason = input<string | null>(null);
+  public readonly reason = input<LoginRedirectReason>(null);
 
-  protected readonly submitting = this.loginPageService.submitting;
+  private readonly googleButton = viewChild.required<ElementRef<HTMLElement>>('googleButton');
+
+  protected readonly isSubmitting = this.loginPageService.isSubmitting;
+  protected readonly isUnavailable = this.loginPageService.isUnavailable;
+  protected readonly isInitializing = this.loginPageService.isInitializing;
   protected readonly errorMessage = this.loginPageService.errorMessage;
 
-  protected continueWithGoogle(): void {
-    const credential = this.readGoogleCredential();
-    if (!credential) {
-      this.loginPageService.setError(
-        'Google sign-in is not configured yet. It is enabled in the authentication phase.',
-      );
-      return;
-    }
-    this.loginPageService.signInWithGoogle(credential, this.returnUrl() || '/dashboard');
-  }
-
-  /**
-   * Reads a credential produced by Google Identity Services when it is present.
-   * No credential is fabricated when the library is absent.
-   */
-  private readGoogleCredential(): string | null {
-    const google = (globalThis as { google?: { accounts?: unknown } }).google;
-    return google?.accounts ? null : null;
+  public ngAfterViewInit(): void {
+    this.loginPageService.mountGoogleButton(
+      this.googleButton().nativeElement,
+      this.returnUrl() || '/dashboard',
+    );
   }
 }

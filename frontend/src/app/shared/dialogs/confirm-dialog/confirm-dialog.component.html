@@ -1,0 +1,15 @@
+<h2 mat-dialog-title class="confirm-dialog__title">{{ data.title }}</h2>
+
+<mat-dialog-content class="confirm-dialog__content">
+  <p>{{ data.message }}</p>
+</mat-dialog-content>
+
+<mat-dialog-actions class="confirm-dialog__actions">
+  <app-ui-button variant="secondary" (pressed)="cancel()">{{ data.cancelLabel }}</app-ui-button>
+  <app-ui-button
+    [variant]="data.destructive ? 'destructive' : 'primary'"
+    (pressed)="confirm()"
+  >
+    {{ data.confirmLabel }}
+  </app-ui-button>
+</mat-dialog-actions>

@@ -1,8 +1,9 @@
+export type LoginPhase = 'initializing' | 'ready' | 'submitting' | 'unavailable';
+
 export interface LoginPageState {
-  readonly submitting: boolean;
+  readonly phase: LoginPhase;
   readonly errorMessage: string | null;
 }
 
-export interface GoogleCredentialPayload {
-  readonly idToken: string;
-}
+/** Reasons the router may pass when redirecting to the login screen. */
+export type LoginRedirectReason = 'session-expired' | null;

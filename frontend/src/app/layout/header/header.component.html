@@ -4,6 +4,7 @@
       type="button"
       class="header__menu-button"
       aria-label="Toggle navigation"
+      matTooltip="Toggle navigation"
       (click)="toggleSidebar()"
     >
       <app-ui-icon name="menu" size="md" />
@@ -24,40 +25,35 @@
       </app-ui-button>
     }
 
-    <div class="header__account">
-      <button
-        type="button"
-        class="header__account-button"
-        [attr.aria-expanded]="menuOpen()"
-        aria-haspopup="menu"
-        (click)="toggleMenu()"
-      >
-        <app-ui-avatar
-          [name]="user()?.name ?? 'Guest'"
-          [imageUrl]="user()?.profileImageUrl ?? null"
-          size="sm"
-        />
-        @if (!isMobile()) {
-          <span class="header__account-name">{{ user()?.name ?? 'Guest' }}</span>
-        }
-      </button>
-
-      @if (menuOpen()) {
-        <div class="header__menu" role="menu">
-          <div class="header__menu-identity">
-            <p class="header__menu-name">{{ user()?.name ?? 'Guest' }}</p>
-            <p class="header__menu-email">{{ user()?.email ?? 'Not signed in' }}</p>
-          </div>
-          <a class="header__menu-item" role="menuitem" routerLink="/settings" (click)="closeMenu()">
-            <app-ui-icon name="settings" size="sm" />
-            Settings
-          </a>
-          <button type="button" class="header__menu-item" role="menuitem" (click)="logout()">
-            <app-ui-icon name="logout" size="sm" />
-            Sign out
-          </button>
-        </div>
+    <button
+      type="button"
+      class="header__account-button"
+      [matMenuTriggerFor]="accountMenu"
+      aria-label="Account menu"
+    >
+      <app-ui-avatar
+        [name]="user()?.name ?? 'Guest'"
+        [imageUrl]="user()?.profileImageUrl ?? null"
+        size="sm"
+      />
+      @if (!isMobile()) {
+        <span class="header__account-name">{{ user()?.name ?? 'Guest' }}</span>
       }
-    </div>
+    </button>
+
+    <mat-menu #accountMenu="matMenu" xPosition="before">
+      <div class="header__menu-identity">
+        <p class="header__menu-name">{{ user()?.name ?? 'Guest' }}</p>
+        <p class="header__menu-email">{{ user()?.email ?? 'Not signed in' }}</p>
+      </div>
+      <a mat-menu-item routerLink="/settings">
+        <app-ui-icon name="settings" size="sm" />
+        <span class="header__menu-label">Settings</span>
+      </a>
+      <button mat-menu-item type="button" (click)="logout()">
+        <app-ui-icon name="logout" size="sm" />
+        <span class="header__menu-label">Sign out</span>
+      </button>
+    </mat-menu>
   </div>
 </header>
