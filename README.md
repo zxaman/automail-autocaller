@@ -240,11 +240,14 @@ twice is deduplicated by checksum. Executables and scripts are rejected at uploa
 ## Local backend setup
 
 1. Install Node.js 20 or newer.
-2. Copy `.env.example` to `.env`.
-3. Start local infrastructure with `docker compose up -d`.
-4. Install backend dependencies with `npm install --prefix backend`.
-5. Install frontend dependencies with `npm install --prefix frontend`.
-6. Start the API with `npm run api:dev`.
+2. Use **MongoDB 4.4 or newer**. The analytics most-contacted ranking uses the `$unionWith`
+   aggregation stage, which older servers do not recognise. The version is checked once at
+   startup and logged; an older server still boots, with that one ranking unavailable.
+3. Copy `.env.example` to `.env`.
+4. Start local infrastructure with `docker compose up -d`.
+5. Install backend dependencies with `npm install --prefix backend`.
+6. Install frontend dependencies with `npm install --prefix frontend`.
+7. Start the API with `npm run api:dev`.
 
 The health endpoint is available at `http://localhost:3000/api/v1/health`.
 

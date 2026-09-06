@@ -24,6 +24,7 @@ export class AnalyticsController {
           from: query.from,
           to: query.to,
           granularity: query.granularity,
+          leaderboardLimit: query.leaderboardLimit,
         },
       );
 

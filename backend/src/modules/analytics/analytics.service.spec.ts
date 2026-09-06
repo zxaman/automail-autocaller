@@ -260,6 +260,101 @@ describe('AnalyticsService', () => {
     });
   });
 
+  describe('caching', () => {
+    it('serves a repeated identical query without re-aggregating', async () => {
+      await summary();
+      await summary();
+
+      expect(repository.callAnalytics).toHaveBeenCalledTimes(1);
+    });
+
+    it('re-aggregates when the range differs', async () => {
+      await summary({ preset: 'week' });
+      await summary({ preset: 'month' });
+
+      expect(repository.callAnalytics).toHaveBeenCalledTimes(2);
+    });
+
+    it('re-aggregates when the granularity differs', async () => {
+      await summary({ granularity: 'day' });
+      await summary({ granularity: 'week' });
+
+      expect(repository.callAnalytics).toHaveBeenCalledTimes(2);
+    });
+
+    it('never serves one workspace numbers computed for another', async () => {
+      const other = { workspaceId: new Types.ObjectId() };
+
+      await summary();
+      await service.getSummary(other, {
+        preset: 'week',
+        timezone: 'Asia/Kolkata',
+        now: new Date('2026-03-10T12:00:00.000Z'),
+      });
+
+      // A shared cache key would have returned the first workspace's result.
+      expect(repository.callAnalytics).toHaveBeenCalledTimes(2);
+      const scopes = repository.callAnalytics.mock.calls.map((call) => call[0]);
+      expect(scopes[0]).toBe(scope);
+      expect(scopes[1]).toBe(other);
+    });
+
+    it('drops only the invalidated workspace', async () => {
+      const other = { workspaceId: new Types.ObjectId() };
+      const otherQuery = {
+        preset: 'week' as const,
+        timezone: 'Asia/Kolkata',
+        now: new Date('2026-03-10T12:00:00.000Z'),
+      };
+
+      await summary();
+      await service.getSummary(other, otherQuery);
+      expect(repository.callAnalytics).toHaveBeenCalledTimes(2);
+
+      service.invalidate(scope);
+
+      await summary();
+      await service.getSummary(other, otherQuery);
+
+      // Only the invalidated workspace recomputed; the other stayed cached.
+      expect(repository.callAnalytics).toHaveBeenCalledTimes(3);
+    });
+
+    it('rejects an invalid range even when a valid one is cached', async () => {
+      await summary();
+
+      await expect(
+        summary({ preset: 'custom', from: '2026-03-01', to: '2026-01-01' }),
+      ).rejects.toMatchObject({ code: 'ANALYTICS_RANGE_INVERTED' });
+    });
+  });
+
+  describe('leaderboard limit', () => {
+    it('defaults to ten', async () => {
+      await summary();
+
+      expect(repository.mostContacted).toHaveBeenCalledWith(scope, expect.anything(), 10);
+    });
+
+    it('honours a requested size', async () => {
+      await summary({ leaderboardLimit: 25 });
+
+      expect(repository.mostContacted).toHaveBeenCalledWith(scope, expect.anything(), 25);
+    });
+
+    it('caps an oversized request', async () => {
+      await summary({ leaderboardLimit: 5000 });
+
+      expect(repository.mostContacted).toHaveBeenCalledWith(scope, expect.anything(), 50);
+    });
+
+    it('rejects a nonsensical size by clamping upward', async () => {
+      await summary({ leaderboardLimit: 0 });
+
+      expect(repository.mostContacted).toHaveBeenCalledWith(scope, expect.anything(), 1);
+    });
+  });
+
   describe('scoping', () => {
     it('passes the workspace scope to every aggregation', async () => {
       await summary();

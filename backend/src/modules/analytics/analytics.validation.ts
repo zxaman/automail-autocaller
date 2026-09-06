@@ -19,6 +19,8 @@ export const analyticsQuerySchema = z.object({
   to: isoDate.optional(),
   /** Omitted means the server picks a bucket size that suits the range. */
   granularity: z.enum(ANALYTICS_GRANULARITIES).optional(),
+  /** Size of the most-contacted ranking. */
+  leaderboardLimit: z.coerce.number().int().min(1).max(50).optional(),
 });
 
 export type AnalyticsQueryInput = z.infer<typeof analyticsQuerySchema>;

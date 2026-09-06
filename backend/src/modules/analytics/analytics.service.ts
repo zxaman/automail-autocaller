@@ -1,5 +1,6 @@
 import { Types } from 'mongoose';
 
+import { TtlCache } from '../../infrastructure/cache/ttl-cache';
 import { AppError } from '../../shared/errors/app-error';
 import {
   MAX_CUSTOM_RANGE_DAYS,
@@ -27,8 +28,21 @@ export interface AnalyticsQuery {
   readonly from?: string;
   readonly to?: string;
   readonly granularity?: AnalyticsGranularity;
+  /** How many contacts the most-contacted ranking returns. */
+  readonly leaderboardLimit?: number;
   readonly now?: Date;
 }
+
+/**
+ * Analytics are recomputed at most this often per distinct query.
+ *
+ * Short enough that the numbers still feel live, long enough to absorb the
+ * repeated loads that happen while a user switches between ranges.
+ */
+export const ANALYTICS_CACHE_TTL_MS = 30_000;
+
+export const DEFAULT_LEADERBOARD_LIMIT = 10;
+export const MAX_LEADERBOARD_LIMIT = 50;
 
 /**
  * Builds the analytics summary.
@@ -39,7 +53,14 @@ export interface AnalyticsQuery {
  * denominator.
  */
 export class AnalyticsService {
-  constructor(private readonly repository: AnalyticsRepository) {}
+  private readonly cache: TtlCache<AnalyticsSummary>;
+
+  constructor(
+    private readonly repository: AnalyticsRepository,
+    cache?: TtlCache<AnalyticsSummary>,
+  ) {
+    this.cache = cache ?? new TtlCache<AnalyticsSummary>({ ttlMs: ANALYTICS_CACHE_TTL_MS });
+  }
 
   public async getSummary(
     scope: AnalyticsScope,
@@ -47,6 +68,16 @@ export class AnalyticsService {
   ): Promise<AnalyticsSummary> {
     const range = this.resolveRange(query);
     const granularity = query.granularity ?? this.defaultGranularity(range);
+    const limit = this.resolveLeaderboardLimit(query.leaderboardLimit);
+
+    // Validation happens before the cache lookup so a bad range is always
+    // rejected, never served from a previous good one.
+    const cacheKey = this.cacheKey(scope, range, granularity, limit);
+    const cached = this.cache.get(cacheKey);
+
+    if (cached) {
+      return cached;
+    }
 
     const [
       rawCalls,
@@ -65,7 +96,7 @@ export class AnalyticsService {
       this.repository.importAnalytics(scope, range),
       this.repository.callBuckets(scope, range, granularity),
       this.repository.emailBuckets(scope, range, granularity),
-      this.repository.mostContacted(scope, range),
+      this.repository.mostContacted(scope, range, limit),
     ]);
 
     const calls: CallAnalytics = {
@@ -102,7 +133,7 @@ export class AnalyticsService {
       successRate: this.safeRate(rawImports.successfulRows, rawImports.totalRows),
     };
 
-    return {
+    const summary: AnalyticsSummary = {
       range: {
         preset: range.preset,
         granularity,
@@ -116,6 +147,49 @@ export class AnalyticsService {
       activity: this.buildActivitySeries(range, granularity, callBuckets, emailBuckets),
       mostContacted: await this.resolveMostContacted(scope, ranked),
     };
+
+    this.cache.set(cacheKey, summary);
+
+    return summary;
+  }
+
+  /**
+   * Drops a workspace's cached analytics.
+   *
+   * Exposed so a write path can force fresh numbers when staleness would be
+   * confusing, without flushing other tenants.
+   */
+  public invalidate(scope: AnalyticsScope): void {
+    this.cache.invalidatePrefix(`${scope.workspaceId.toString()}:`);
+  }
+
+  /**
+   * Cache keys are prefixed by workspace so one tenant can be invalidated
+   * alone, and so no key can ever collide across tenants.
+   */
+  private cacheKey(
+    scope: AnalyticsScope,
+    range: DateRange,
+    granularity: AnalyticsGranularity,
+    limit: number,
+  ): string {
+    return [
+      scope.workspaceId.toString(),
+      range.preset,
+      range.timezone,
+      range.from.toISOString(),
+      range.to.toISOString(),
+      granularity,
+      limit,
+    ].join(':');
+  }
+
+  private resolveLeaderboardLimit(requested: number | undefined): number {
+    if (requested === undefined) {
+      return DEFAULT_LEADERBOARD_LIMIT;
+    }
+
+    return Math.min(Math.max(Math.trunc(requested), 1), MAX_LEADERBOARD_LIMIT);
   }
 
   private resolveRange(query: AnalyticsQuery): DateRange {
