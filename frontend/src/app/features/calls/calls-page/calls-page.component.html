@@ -1,9 +1,198 @@
-<div class="app-page">
-  <app-ui-page-header title="Calls" description="Call history and the controlled calling queue." />
-  <app-ui-coming-soon
-    icon="calls"
-    [phase]="phase"
-    [summary]="summary"
-    [capabilities]="capabilities"
-  />
-</div>
+<section class="calls">
+  <header class="calls__header">
+    <div>
+      <h1 class="calls__title">Calls</h1>
+      <p class="calls__subtitle">
+        Calls are connected by the telephony provider over the phone network. Your own phone
+        rings first, then we connect the contact.
+      </p>
+    </div>
+  </header>
+
+  @if (state.isLoading()) {
+    <app-ui-loading-spinner label="Loading calls" />
+  } @else if (state.errorMessage()) {
+    <app-ui-error-state [message]="state.errorMessage()!" (retry)="state.load()" />
+  } @else {
+    <div class="calls__grid">
+      <!-- Live call -->
+      <app-ui-card title="Current call">
+        <div class="calls__field">
+          <label class="calls__label" for="agent-number">Your phone number</label>
+          <input
+            id="agent-number"
+            class="calls__input"
+            type="tel"
+            inputmode="tel"
+            placeholder="+91 98765 43210"
+            [value]="state.agentNumber()"
+            (input)="onAgentNumberInput($event)"
+          />
+          <p class="calls__hint">
+            The provider dials this number first. Answer it to be connected.
+          </p>
+        </div>
+
+        @if (state.activeCall(); as call) {
+          <div class="calls__live">
+            <div class="calls__live-header">
+              <span class="calls__live-name">{{ call.contactName }}</span>
+              <app-ui-status-badge [status]="statusLabel(call.status)" />
+            </div>
+
+            <p class="calls__live-number">{{ call.phoneNumber }}</p>
+
+            @if (call.durationSeconds > 0) {
+              <p class="calls__live-duration">{{ call.durationSeconds | appDuration }}</p>
+            }
+
+            @if (state.instruction(); as instruction) {
+              <p class="calls__instruction">{{ instruction }}</p>
+            }
+
+            @if (call.failureReason) {
+              <p class="calls__failure">{{ call.failureReason }}</p>
+            }
+
+            @if (state.controls(); as controls) {
+              @if (controls.audioOnHandset) {
+                <!--
+                  Stated plainly rather than showing mute/hold/keypad buttons
+                  that could not work: the audio is on the handset.
+                -->
+                <p class="calls__note">
+                  Audio is on your phone, so mute, hold, and the keypad are controlled from your
+                  handset.
+                </p>
+              }
+
+              @if (controls.canCancel && state.isCallLive()) {
+                <app-ui-button variant="destructive" (pressed)="state.cancelActiveCall()">
+                  Cancel call
+                </app-ui-button>
+              }
+            }
+          </div>
+        } @else {
+          <p class="calls__note">No call in progress.</p>
+        }
+      </app-ui-card>
+
+      <!-- Manual queue -->
+      <app-ui-card
+        title="Calling queue"
+        [subtitle]="state.queueRemaining() + ' remaining'"
+      >
+        <div class="calls__queue-actions">
+          <app-ui-button variant="ghost" size="sm" (pressed)="state.queueAllWithPhone()">
+            Queue all with a phone number
+          </app-ui-button>
+          <app-ui-button variant="ghost" size="sm" (pressed)="state.clearQueue()">
+            Clear
+          </app-ui-button>
+        </div>
+
+        @if (state.currentQueueContact(); as contact) {
+          <div class="calls__queue-current">
+            <span class="calls__queue-label">Next up</span>
+            <span class="calls__queue-name">{{ contact.name }}</span>
+            <span class="calls__queue-number">{{ contact.phone }}</span>
+          </div>
+
+          <div class="calls__queue-actions">
+            <app-ui-button
+              variant="primary"
+              [disabled]="!state.canStartCall()"
+              [loading]="state.isStarting()"
+              (pressed)="state.callCurrentQueueContact()"
+            >
+              Call {{ contact.name }}
+            </app-ui-button>
+
+            <!-- Advancing is always explicit; the queue never auto-dials. -->
+            <app-ui-button variant="secondary" (pressed)="state.skipToNext()">
+              Skip
+            </app-ui-button>
+          </div>
+
+          <p class="calls__hint">
+            The queue never dials on its own. You start each call yourself.
+          </p>
+        } @else {
+          <p class="calls__note">
+            The queue is empty. Add contacts to work through them one at a time.
+          </p>
+        }
+      </app-ui-card>
+
+      <!-- Contacts -->
+      <app-ui-card title="Contacts" subtitle="Call directly">
+        @if (state.contacts().length === 0) {
+          <app-ui-empty-state
+            icon="contacts"
+            title="No contacts yet"
+            description="Import or add contacts to start calling."
+          />
+        } @else {
+          <ul class="calls__contacts">
+            @for (contact of state.contacts(); track contact.id) {
+              <li class="calls__contact">
+                <div class="calls__contact-main">
+                  <span class="calls__contact-name">{{ contact.name }}</span>
+                  <span class="calls__contact-number">
+                    {{ contact.phone ?? 'No phone number' }}
+                  </span>
+                </div>
+
+                <app-ui-button
+                  variant="secondary"
+                  size="sm"
+                  [disabled]="!contact.phone || !state.canStartCall()"
+                  (pressed)="state.callContact(contact.id)"
+                >
+                  Call
+                </app-ui-button>
+              </li>
+            }
+          </ul>
+        }
+      </app-ui-card>
+    </div>
+
+    <!-- History -->
+    <app-ui-card title="Recent calls">
+      @if (state.history().length === 0) {
+        <app-ui-empty-state
+          icon="calls"
+          title="No calls yet"
+          description="Completed and failed calls appear here with their outcome."
+        />
+      } @else {
+        <ul class="calls__history">
+          @for (call of state.history(); track call.id) {
+            <li class="calls__history-row">
+              <div class="calls__history-main">
+                <span class="calls__history-name">{{ call.contactName }}</span>
+                <span class="calls__history-number">{{ call.phoneNumber }}</span>
+              </div>
+
+              <div class="calls__history-meta">
+                <app-ui-status-badge [status]="statusLabel(call.status)" />
+                @if (call.durationSeconds > 0) {
+                  <span class="calls__history-duration">
+                    {{ call.durationSeconds | appDuration }}
+                  </span>
+                }
+                <span class="calls__history-time">{{ call.startedAt | appRelativeTime }}</span>
+              </div>
+
+              @if (call.failureReason) {
+                <p class="calls__history-failure">{{ call.failureReason }}</p>
+              }
+            </li>
+          }
+        </ul>
+      }
+    </app-ui-card>
+  }
+</section>

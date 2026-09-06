@@ -61,3 +61,19 @@ export const sendRateLimiter = rateLimit({
     'Too many send requests. Please wait a moment before sending again.',
   ),
 });
+
+/**
+ * Each accepted request dials a real phone and costs money. This is a guard
+ * against a runaway client, and it also enforces that calling stays a manual,
+ * one-at-a-time action rather than an auto-dialler.
+ */
+export const callRateLimiter = rateLimit({
+  windowMs: 60_000,
+  limit: isTest ? 100_000 : 10,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: jsonLimitResponse(
+    'CALL_RATE_LIMITED',
+    'Too many call attempts. Please wait a moment before dialing again.',
+  ),
+});

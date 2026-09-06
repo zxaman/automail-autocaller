@@ -42,6 +42,16 @@ const environmentSchema = z.object({
   EMAIL_MAX_ATTEMPTS: z.coerce.number().int().min(1).max(10).default(3),
   ATTACHMENT_STORAGE_DIR: z.string().trim().min(1).default('storage/attachments'),
 
+  // Telephony (AutoCall). Provider is resolved per call by destination country.
+  EXOTEL_ACCOUNT_SID: z.string().trim().min(1).optional(),
+  EXOTEL_API_KEY: z.string().trim().min(1).optional(),
+  EXOTEL_API_TOKEN: z.string().trim().min(1).optional(),
+  EXOTEL_SUBDOMAIN: z.string().trim().min(1).default('api.in.exotel.com'),
+  EXOTEL_CALLER_ID: z.string().trim().min(1).optional(),
+  DEFAULT_CALLER_ID: z.string().trim().min(1).optional(),
+  // Verifies provider webhooks. Without it, call outcomes can be forged.
+  TELEPHONY_WEBHOOK_SECRET: z.string().trim().min(1).optional(),
+
   // SMTP transport defaults. Overridable for testing against a local catcher.
   SMTP_HOST: z.string().trim().min(1).default('smtp.gmail.com'),
   SMTP_PORT: z.coerce.number().int().min(1).max(65_535).default(465),

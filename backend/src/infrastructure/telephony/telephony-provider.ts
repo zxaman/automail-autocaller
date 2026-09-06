@@ -7,6 +7,10 @@
  * elsewhere. Both must fit behind one contract.
  *
  * See telephony-evaluation.md for why bridging is the India-domestic model.
+ *
+ * Call recording is deliberately absent. It was dropped from the product, which
+ * removes the DPDP consent-logging, retention, and secure-playback obligations
+ * entirely rather than leaving them half-implemented.
  */
 
 /**
@@ -68,7 +72,6 @@ export interface TelephonyCapabilities {
   readonly dtmf: boolean;
   /** Call can be cancelled through the API, typically only while ringing. */
   readonly cancelWhileRinging: boolean;
-  readonly recording: boolean;
   /** Provider posts call lifecycle events to a webhook. */
   readonly statusWebhooks: boolean;
 }
@@ -80,11 +83,6 @@ export interface PlaceCallInput {
   readonly customerNumber: string;
   /** Virtual number shown as caller ID. Must belong to the provider account. */
   readonly callerId: string;
-  /**
-   * Recording is opt-in per call and must never default to true. The caller is
-   * responsible for having played a consent announcement and logged consent.
-   */
-  readonly record: boolean;
   /** Correlates provider events back to our call record. */
   readonly reference: string;
   /** Seconds to ring before giving up. */
@@ -108,11 +106,6 @@ export interface CallEvent {
   readonly leg: CallLeg | null;
   /** Conversation seconds, present only once the call is terminal. */
   readonly durationSeconds: number | null;
-  /**
-   * Provider-hosted recording location. Never surfaced to a client directly:
-   * it is fetched server-side into our own private storage.
-   */
-  readonly recordingUrl: string | null;
   readonly occurredAt: Date;
   /** Vendor's own status text, kept only for diagnostics. */
   readonly rawStatus: string | null;
@@ -127,7 +120,7 @@ export interface CallDetails extends CallEvent {
  * Result of checking a webhook's authenticity.
  *
  * An unverified webhook endpoint lets anyone forge call outcomes — marking
- * calls completed, injecting recording URLs. Verification is therefore part of
+ * calls completed or injecting false durations. Verification is therefore part of
  * the interface rather than left to each adapter's discretion.
  */
 export type WebhookVerification =
@@ -163,13 +156,6 @@ export interface TelephonyProvider {
 
   /** Verifies a webhook's signature and normalizes it. Never trusts the body. */
   verifyWebhook(request: WebhookRequest): WebhookVerification;
-
-  /**
-   * Streams a recording's bytes for copying into our own private storage.
-   * Provider-hosted URLs expire and are outside our access control, so they are
-   * never handed to a client.
-   */
-  fetchRecording(recordingUrl: string): Promise<Buffer>;
 }
 
 /** Thrown when a provider rejects a request. Never carries credentials. */

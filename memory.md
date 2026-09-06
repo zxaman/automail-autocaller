@@ -337,3 +337,33 @@ stays manually advanced.
 
 Artifacts: `telephony-evaluation.md`, `backend/src/infrastructure/telephony/telephony-provider.ts`,
 revised `architecture.md` §6, telephony env keys in `.env.example`.
+
+## Phase 10 - AutoCall
+
+Calling is provider-backed and honest about what it is. The app never carries voice: it asks
+the provider to dial the agent's own handset (leg 1), then the contact (leg 2), and bridge them.
+Voice never touches the browser, the device audio stack, or a `tel:` link.
+
+Because the agent is on a normal handset, mute / hold / speaker / DTMF are handset functions.
+The server reports `TelephonyCapabilities`, the mapper turns them into `CallControls`, and the
+UI renders only what the provider can actually do. On the Exotel path every one of those is
+`false`, so the screen states plainly that audio is on the handset instead of drawing dead buttons.
+
+The provider is resolved per call from the destination dial code, never from a global setting,
+so the product stays pitchable outside India: `+91` goes to Exotel or is refused with
+`CALL_DESTINATION_UNSUPPORTED`; other destinations go to Twilio.
+
+Correctness details worth remembering:
+- The webhook route is mounted before any JSON parser and before `authenticate`, using
+  `express.text({ type: '*/*' })`, because re-serializing a parsed body changes the bytes and
+  breaks HMAC verification. Signature check uses `timingSafeEqual`; JSON is parsed only after.
+- `providerCallId` has a unique partial index, so a replayed webhook cannot fork a record.
+- The state machine rejects duplicate, backwards, and post-terminal transitions, so a late or
+  out-of-order webhook cannot resurrect a finished call.
+- The provider call is made *before* the record is written, so a provider failure leaves no row.
+- The client polls `/refresh` while a call is live to reconcile a lost webhook, and stops at a
+  terminal status.
+- The queue never advances on its own; `skipToNext` is only reachable from a user action.
+
+Recording (former Phase 11) was cancelled and physically removed from the contract, the model,
+and `.env.example`.

@@ -3,13 +3,19 @@ import { Schema, model, type HydratedDocument, type Model, type Types } from 'mo
 export const CALL_DIRECTIONS = ['inbound', 'outbound'] as const;
 export type CallDirection = (typeof CALL_DIRECTIONS)[number];
 
+/**
+ * Mirrors the provider-neutral status set in `telephony-provider.ts`. There is
+ * no "on-hold": in the PSTN-bridge model the agent is on their own handset, so
+ * hold is not a state this application can observe or control.
+ */
 export const CALL_STATUSES = [
-  'initiating',
+  'queued',
+  'initiated',
   'ringing',
-  'connected',
-  'on-hold',
+  'in_progress',
   'completed',
-  'missed',
+  'no_answer',
+  'busy',
   'failed',
   'canceled',
 ] as const;
@@ -31,10 +37,17 @@ export interface CallAttributes {
   /** Identifier issued by the telephony provider, set in the calling phase. */
   providerCallId: string | null;
   provider: string | null;
-  recordingId: Types.ObjectId | null;
+  /** Number the agent was reached on. Stored for support and audit. */
+  agentNumber: string | null;
+  /** Virtual number shown to the contact as caller ID. */
+  callerId: string | null;
+  /** Destination country code, so analytics can split by geography. */
+  countryCode: string | null;
   startedAt: Date;
+  answeredAt: Date | null;
   endedAt: Date | null;
   failureReason: string | null;
+  failureCode: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -42,8 +55,10 @@ export interface CallAttributes {
 export type CallDocument = HydratedDocument<CallAttributes>;
 
 /**
- * Call records. The schema is introduced here because the dashboard aggregates
- * over it; call creation and provider integration arrive in the calling phase.
+ * Call records.
+ *
+ * There is no recording reference: call recording was dropped from the product,
+ * which removes the consent-logging and retention obligations it would carry.
  */
 const callSchema = new Schema<CallAttributes>(
   {
@@ -57,10 +72,14 @@ const callSchema = new Schema<CallAttributes>(
     durationSeconds: { type: Number, default: 0, min: 0 },
     providerCallId: { type: String, default: null },
     provider: { type: String, default: null },
-    recordingId: { type: Schema.Types.ObjectId, ref: 'CallRecording', default: null },
+    agentNumber: { type: String, default: null, trim: true, maxlength: 32 },
+    callerId: { type: String, default: null, trim: true, maxlength: 32 },
+    countryCode: { type: String, default: null, trim: true, maxlength: 4 },
     startedAt: { type: Date, required: true },
+    answeredAt: { type: Date, default: null },
     endedAt: { type: Date, default: null },
     failureReason: { type: String, default: null, maxlength: 500 },
+    failureCode: { type: String, default: null, maxlength: 80 },
   },
   { timestamps: true, versionKey: false },
 );
@@ -69,5 +88,10 @@ const callSchema = new Schema<CallAttributes>(
 callSchema.index({ workspaceId: 1, startedAt: -1 });
 callSchema.index({ workspaceId: 1, status: 1, startedAt: -1 });
 callSchema.index({ workspaceId: 1, contactId: 1, startedAt: -1 });
+// Webhooks are matched on this; unique so a replay cannot fork a second record.
+callSchema.index(
+  { providerCallId: 1 },
+  { unique: true, partialFilterExpression: { providerCallId: { $type: 'string' } } },
+);
 
 export const CallModel: Model<CallAttributes> = model<CallAttributes>('Call', callSchema);

@@ -9,6 +9,7 @@ import { logger } from './infrastructure/logger/logger';
 import { errorMiddleware } from './middleware/error.middleware';
 import { notFoundMiddleware } from './middleware/not-found.middleware';
 import {
+  callRateLimiter,
   credentialRateLimiter,
   globalRateLimiter,
   sendRateLimiter,
@@ -18,7 +19,9 @@ import { createAuthModule } from './modules/auth/auth.module';
 import { createContactModule } from './modules/contacts/contact.module';
 import { createDashboardModule } from './modules/dashboard/dashboard.module';
 import { createEmailAccountModule } from './modules/email-accounts/email-account.module';
+import { createCallModule } from './modules/calls/call.module';
 import { createEmailModule } from './modules/emails/email.module';
+import { createCallRouter } from './routes/call.routes';
 import { createEmailRouter } from './routes/email.routes';
 import { createImportModule } from './modules/imports/import.module';
 import { createAuthRouter } from './routes/auth.routes';
@@ -82,6 +85,11 @@ export function createApp(): express.Express {
       authModule.authenticate,
       sendRateLimiter,
     ),
+  );
+
+  app.use(
+    '/api/v1',
+    createCallRouter(createCallModule(), authModule.authenticate, callRateLimiter),
   );
 
   app.use(notFoundMiddleware);
