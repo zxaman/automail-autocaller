@@ -146,16 +146,16 @@ describe('CallService', () => {
       ).rejects.toMatchObject({ code: 'CONTACT_PHONE_INVALID' });
     });
 
-    it('refuses to dial when no provider can lawfully reach the country', async () => {
-      // Only twilio configured, but an Indian number needs the licensed one.
-      const twilioOnly = new CallService(
+    it('refuses to dial when no provider is licensed for the country', async () => {
+      // Calling is domestic only, so an unsupported country has no route at all.
+      const noProviders = new CallService(
         repository as never,
-        { twilio: { ...exotel, name: 'twilio' } as never },
+        {},
         { resolve: () => '+14155550000' },
       );
 
       await expect(
-        twilioOnly.startCall(scope, ownerId, {
+        noProviders.startCall(scope, ownerId, {
           contactId: new Types.ObjectId().toString(),
           agentNumber: '+919812345678',
         }),

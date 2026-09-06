@@ -3,16 +3,19 @@ import { TelephonyError } from './telephony-provider';
 /**
  * Destination-based provider routing.
  *
- * The provider is not a global setting: it is resolved per call from the
- * destination country, because the lawful way to reach a number differs by
- * country. An Indian number must go through a UL-VNO licensed operator using
- * PSTN bridging; a US number can use a general CPaaS. Picking one provider
- * globally would either break India compliance or give up the rest of the world.
+ * Calling is DOMESTIC ONLY: the agent and the contact are in the same country.
+ * We never place cross-border calls, so no international CPaaS is involved.
+ * Each supported country is served by an operator licensed in that country,
+ * which is also the only lawful way to reach the PSTN somewhere like India
+ * where domestic VoIP-to-PSTN dial-out is prohibited.
+ *
+ * The provider is resolved per call from the destination country, and an
+ * unsupported country is refused rather than routed across a border.
  *
  * See telephony-evaluation.md.
  */
 
-export const TELEPHONY_PROVIDER_NAMES = ['exotel', 'twilio'] as const;
+export const TELEPHONY_PROVIDER_NAMES = ['exotel'] as const;
 export type TelephonyProviderName = (typeof TELEPHONY_PROVIDER_NAMES)[number];
 
 /** How the voice path is carried, which decides what the UI may offer. */
@@ -53,14 +56,13 @@ const COUNTRY_DIAL_CODES: readonly string[] = [
 const SORTED_DIAL_CODES = [...COUNTRY_DIAL_CODES].sort((a, b) => b.length - a.length);
 
 /**
- * Countries where domestic VoIP-to-PSTN dial-out is prohibited, so a call must
- * be bridged over the PSTN by a locally licensed operator.
+ * Country dialing code -> the operator licensed to place domestic calls there.
  *
- * India is the case this product is built around. Others are listed only where
- * we have a licensed provider; an unlisted restricted country is safer to
- * refuse than to attempt.
+ * A country absent from this map is not callable. That is deliberate: telecom
+ * licensing is per-country, so serving a new country means onboarding an
+ * operator there, never reusing an existing one across a border.
  */
-const PSTN_BRIDGE_ONLY_COUNTRIES: Readonly<Record<string, TelephonyProviderName>> = {
+const DOMESTIC_PROVIDERS: Readonly<Record<string, TelephonyProviderName>> = {
   '91': 'exotel',
 };
 
@@ -81,11 +83,10 @@ export interface RoutingOptions {
 }
 
 /**
- * Chooses how to place a call to the given number.
+ * Chooses how to place a domestic call to the given number.
  *
- * Refusing is a valid outcome. If the destination requires a licensed local
- * operator we do not have, the call must not fall back to a provider that
- * cannot lawfully complete it.
+ * Refusing is a valid outcome, and the expected one for an unsupported
+ * country. There is no cross-border fallback.
  */
 export function routeCall(destinationE164: string, options: RoutingOptions): RouteDecision {
   const countryCode = extractCountryCode(destinationE164);
@@ -98,48 +99,21 @@ export function routeCall(destinationE164: string, options: RoutingOptions): Rou
     );
   }
 
-  const requiredProvider = PSTN_BRIDGE_ONLY_COUNTRIES[countryCode];
+  const provider = DOMESTIC_PROVIDERS[countryCode];
 
-  if (requiredProvider) {
-    if (!options.availableProviders.includes(requiredProvider)) {
-      throw new TelephonyError(
-        'Calling this country is not available on this workspace yet',
-        'CALL_DESTINATION_UNSUPPORTED',
-        false,
-      );
-    }
-
-    return {
-      provider: requiredProvider,
-      transport: 'pstn_bridge',
-      countryCode,
-      reason: `Domestic VoIP-to-PSTN dial-out is restricted for +${countryCode}; bridging via ${requiredProvider}`,
-    };
+  // An unsupported country is refused. There is no cross-border fallback.
+  if (!provider || !options.availableProviders.includes(provider)) {
+    throw new TelephonyError(
+      'Calling this country is not available on this workspace yet',
+      'CALL_DESTINATION_UNSUPPORTED',
+      false,
+    );
   }
 
-  // Everywhere else, a general CPaaS can carry the call.
-  if (options.availableProviders.includes('twilio')) {
-    return {
-      provider: 'twilio',
-      transport: 'pstn_bridge',
-      countryCode,
-      reason: `No local restriction recorded for +${countryCode}; using twilio`,
-    };
-  }
-
-  // Exotel can place international calls, so it is a usable last resort.
-  if (options.availableProviders.includes('exotel')) {
-    return {
-      provider: 'exotel',
-      transport: 'pstn_bridge',
-      countryCode,
-      reason: `Twilio unavailable; falling back to exotel for +${countryCode}`,
-    };
-  }
-
-  throw new TelephonyError(
-    'No telephony provider is configured on this server',
-    'TELEPHONY_NOT_CONFIGURED',
-    false,
-  );
+  return {
+    provider,
+    transport: 'pstn_bridge',
+    countryCode,
+    reason: `Domestic call to +${countryCode} bridged via ${provider}`,
+  };
 }

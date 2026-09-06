@@ -22,9 +22,12 @@ A centralized communication workspace for importing contacts, making provider-ba
 - Phase 7 Gmail account connection: complete.
 - Phase 8 AutoMail composer and queue: complete.
 - Phase 9 telephony provider evaluation: complete (decision phase; see `telephony-evaluation.md`).
-- Phase 10 AutoCall: complete. Provider-backed calling via PSTN bridging (Exotel for +91,
-  Twilio elsewhere), signed webhooks, a call state machine, calling screen, history, and a
-  manually advanced queue. There is no `tel:` fallback and no in-app audio.
+- Phase 10 AutoCall: complete. Provider-backed calling via PSTN bridging (Exotel for +91),
+  signed webhooks, a call state machine, calling screen, history, and a manually advanced
+  queue. There is no `tel:` fallback and no in-app audio.
+- Calling is domestic only: the agent and the contact are in the same country. Cross-border
+  calling is out of scope, so no international CPaaS is used. Serving a new country means
+  onboarding an operator licensed there.
 - Phase 11 call recording: cancelled. All recording surface has been removed from the code.
 - Remaining feature phases (AutoMail, AutoCall) are not implemented yet.
 

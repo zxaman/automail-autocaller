@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { extractCountryCode, routeCall } from './call-routing';
 
-const both = { availableProviders: ['exotel', 'twilio'] as const };
+const configured = { availableProviders: ['exotel'] as const };
 
 describe('extractCountryCode', () => {
   it('reads a single-digit country code', () => {
@@ -29,55 +29,64 @@ describe('extractCountryCode', () => {
 
 describe('routeCall', () => {
   it('routes an Indian number to the licensed bridging provider', () => {
-    const decision = routeCall('+919876543210', both);
+    const decision = routeCall('+919876543210', configured);
 
     expect(decision.provider).toBe('exotel');
     expect(decision.transport).toBe('pstn_bridge');
   });
 
-  it('routes a US number to the general provider', () => {
-    expect(routeCall('+14155552671', both).provider).toBe('twilio');
+  it('refuses a US number, because we do not call across borders', () => {
+    // Calling is domestic only: an Indian agent does not dial a US contact.
+    expect(() => routeCall('+14155552671', configured)).toThrow(
+      /not available on this workspace/,
+    );
   });
 
-  it('routes a UK number to the general provider', () => {
-    expect(routeCall('+447700900123', both).provider).toBe('twilio');
+  it('refuses a UK number for the same reason', () => {
+    expect(() => routeCall('+447700900123', configured)).toThrow(
+      /not available on this workspace/,
+    );
   });
 
   it('never carries an Indian call over in-app voice', () => {
     // Domestic VoIP-to-PSTN dial-out is prohibited in India.
-    expect(routeCall('+919876543210', both).transport).not.toBe('in_app_voice');
+    expect(routeCall('+919876543210', configured).transport).not.toBe('in_app_voice');
   });
 
   it('refuses an Indian call when the licensed provider is not configured', () => {
-    expect(() =>
-      routeCall('+919876543210', { availableProviders: ['twilio'] }),
-    ).toThrow(/not available on this workspace/);
+    expect(() => routeCall('+919876543210', { availableProviders: [] })).toThrow(
+      /not available on this workspace/,
+    );
   });
 
   it('does not silently substitute a provider that cannot lawfully complete the call', () => {
     try {
-      routeCall('+919876543210', { availableProviders: ['twilio'] });
+      routeCall('+919876543210', { availableProviders: [] });
       expect.unreachable('should have refused');
     } catch (error) {
       expect((error as { code: string }).code).toBe('CALL_DESTINATION_UNSUPPORTED');
     }
   });
 
-  it('falls back to exotel for international when twilio is absent', () => {
-    expect(routeCall('+14155552671', { availableProviders: ['exotel'] }).provider).toBe('exotel');
+  it('never routes a foreign destination to the India operator', () => {
+    // The old cross-border fallback is gone: an Indian licence does not
+    // authorise dialling a US number, and we do not offer cross-border calls.
+    expect(() =>
+      routeCall('+14155552671', { availableProviders: ['exotel'] }),
+    ).toThrow(/not available on this workspace/);
   });
 
   it('rejects an unparseable destination', () => {
-    expect(() => routeCall('+12', both)).toThrow(/not a valid international number/);
+    expect(() => routeCall('+12', configured)).toThrow(/not a valid international number/);
   });
 
-  it('fails clearly when no provider is configured', () => {
-    expect(() => routeCall('+14155552671', { availableProviders: [] })).toThrow(
-      /No telephony provider is configured/,
+  it('fails clearly when no provider is configured at all', () => {
+    expect(() => routeCall('+919876543210', { availableProviders: [] })).toThrow(
+      /not available on this workspace/,
     );
   });
 
   it('explains why a route was chosen', () => {
-    expect(routeCall('+919876543210', both).reason).toContain('restricted');
+    expect(routeCall('+919876543210', configured).reason).toContain('exotel');
   });
 });

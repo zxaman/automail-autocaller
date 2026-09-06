@@ -324,8 +324,8 @@ handset's, not ours.** Rendering those buttons in-app would be fake calling UI a
 forbidden by rules.md. `TelephonyCapabilities` exists so the UI hides what the provider
 genuinely cannot do, rather than showing dead controls.
 
-Decision: **Exotel primary** (UL-VNO licensed, REST, no client SDK, recording + webhooks),
-**Twilio behind the same interface** for international only.
+Decision: **Exotel** (UL-VNO licensed, REST, no client SDK, webhooks). Superseded in Phase 10:
+calling is domestic only, so the planned Twilio international adapter was dropped entirely.
 
 Recording: India's one-party-consent baseline is not enough for a commercial product.
 DPDP Act 2023 makes recorded audio personal data; full notice-and-consent compliance is
@@ -349,9 +349,12 @@ The server reports `TelephonyCapabilities`, the mapper turns them into `CallCont
 UI renders only what the provider can actually do. On the Exotel path every one of those is
 `false`, so the screen states plainly that audio is on the handset instead of drawing dead buttons.
 
-The provider is resolved per call from the destination dial code, never from a global setting,
-so the product stays pitchable outside India: `+91` goes to Exotel or is refused with
-`CALL_DESTINATION_UNSUPPORTED`; other destinations go to Twilio.
+The provider is resolved per call from the destination dial code, never from a global setting.
+Calling is DOMESTIC ONLY - agent and contact are in the same country - so there is no
+cross-border calling and no international CPaaS. `+91` goes to Exotel; any country without a
+licensed operator in `DOMESTIC_PROVIDERS` is refused with `CALL_DESTINATION_UNSUPPORTED`.
+Twilio was removed entirely: an Indian licence does not authorise dialling a foreign number,
+and without cross-border calling a second provider bought nothing.
 
 Correctness details worth remembering:
 - The webhook route is mounted before any JSON parser and before `authenticate`, using

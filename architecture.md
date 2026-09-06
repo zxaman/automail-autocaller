@@ -165,11 +165,18 @@ Provider confirms final status and duration
 Call appears in history and contact timeline
 ```
 
-**Provider selection (Phase 9).** Twilio Voice cannot place domestic calls to Indian
-numbers — Twilio's own India guidance restricts outbound calls to India to international
-originating numbers. The primary provider is therefore **Exotel**, which holds a Unified
-Licence (VNO) and offers compliant PSTN bridging over plain REST. Twilio remains supported
-behind the same `TelephonyProvider` interface for international destinations.
+**Provider selection (Phase 9, revised in Phase 10).** Calling is **domestic only**: the
+agent and the contact are always in the same country, and cross-border calling is out of
+scope. Each supported country is therefore served by an operator licensed *in that country*,
+resolved per call from the destination dial code.
+
+For India that operator is **Exotel**, which holds a Unified Licence (VNO) and offers
+compliant PSTN bridging over plain REST. Twilio Voice cannot place domestic calls to Indian
+numbers — its own India guidance restricts outbound calls to India to international
+originating numbers — and since we never dial across a border, no international CPaaS is
+needed at all. A destination country with no licensed operator configured is **refused**
+(`CALL_DESTINATION_UNSUPPORTED`) rather than routed through a provider that cannot lawfully
+complete the call.
 
 Because the voice path is PSTN, mute, hold, DTMF, and audio routing belong to the agent's
 handset and are **not** in-app controls. The provider adapter declares this through
@@ -320,14 +327,12 @@ backend/src/
 │   ├── google/
 │   ├── gmail/
 │   ├── telephony/
-│   │   ├── telephony.provider.ts
-│   │   ├── twilio/
-│   │   ├── telnyx/
-│   │   └── vonage/
+│   │   ├── telephony-provider.ts
+│   │   ├── call-routing.ts
+│   │   └── exotel-provider.ts
 │   └── object-storage/
 ├── workers/
 │   ├── email.worker.ts
-│   ├── recording.worker.ts
 │   └── cleanup.worker.ts
 └── shared/
     ├── errors/
