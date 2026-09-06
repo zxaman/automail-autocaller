@@ -1,0 +1,18 @@
+.offline {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: #b3261e;
+  color: #fff;
+  font-size: 0.82rem;
+  text-align: center;
+
+  &__dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: currentcolor;
+  }
+}

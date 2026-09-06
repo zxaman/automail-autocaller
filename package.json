@@ -13,7 +13,10 @@
     "frontend:install": "npm --prefix frontend install --legacy-peer-deps",
     "web:dev": "npm --prefix frontend run start",
     "web:build": "npm --prefix frontend run build",
-    "web:test": "npm --prefix frontend run test"
+    "web:test": "npm --prefix frontend run test",
+    "mobile:sync": "npm --prefix frontend run cap:sync",
+    "mobile:add:android": "npm --prefix frontend run cap:add:android",
+    "mobile:add:ios": "npm --prefix frontend run cap:add:ios"
   },
   "engines": {
     "node": ">=20.0.0"

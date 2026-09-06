@@ -29,6 +29,10 @@ A centralized communication workspace for importing contacts, making provider-ba
   calling is out of scope, so no international CPaaS is used. Serving a new country means
   onboarding an operator licensed there.
 - Phase 11 call recording: cancelled. All recording surface has been removed from the code.
+- Phase 14 Capacitor mobile packaging: complete. Shared Angular build wrapped for Android and
+  iOS, with a platform capability service, OS-backed secure storage, connectivity and
+  lifecycle awareness, and a native-aware API origin. No microphone, audio, CallKit, or
+  Telecom integration: see the capability table below for why.
 - Phase 13 analytics: complete. Server-side aggregation of call, email, and import
   performance over a timezone-aware custom date range, with day/week/month bucketing,
   a most-contacted ranking, and published definitions for every metric.
@@ -258,3 +262,33 @@ The health endpoint is available at `http://localhost:3000/api/v1/health`.
 3. Open `http://localhost:4200`. Requests to `/api` are proxied to the backend on port 3000.
 
 Frontend tests run with `npm run web:test` and a production build with `npm run web:build`.
+
+
+## Web and mobile capability differences
+
+The same Angular build runs in a browser and inside a Capacitor WebView. These are the
+differences the code actually accounts for, exposed through `PlatformService` so a feature
+asks for a capability rather than testing for a platform name.
+
+| Capability | Web | Android / iOS | Why |
+| --- | --- | --- | --- |
+| Session storage | httpOnly cookie | httpOnly cookie + OS-backed `Preferences` for small values | The browser cannot read an httpOnly cookie, which is the safer arrangement. There is deliberately no `localStorage` fallback: adding one would weaken the web build to match the phone. |
+| API origin | relative `/api/v1` | absolute `nativeApiOrigin` | Inside a WebView the page origin is the device, so a relative path requests a server that does not exist there. |
+| CORS | same-origin | cross-origin | Native origins (`http://localhost`, `capacitor://localhost`) must be in `CORS_ORIGINS`, and the session cookie needs `SameSite=None` + `Secure`. |
+| Connectivity | browser online/offline events | `@capacitor/network` | A phone loses signal in ways a desktop rarely does, and this app places real calls. |
+| App lifecycle | none | `@capacitor/app` resume events | The OS suspends the app during a call; on resume the screen may be showing stale data. |
+| In-app voice | **no** | **no** | Calls are bridged by the telephony provider over the PSTN and answered on the handset dialler. The app never touches call audio. |
+| Microphone permission | **never requested** | **never requested** | A direct consequence of the row above: there is no audio to capture, so asking would be requesting a permission the app cannot justify. |
+| CallKit / Android Telecom | not applicable | not integrated | Both exist to let an app present *its own* VoIP calls to the OS. Our calls are ordinary carrier calls placed by the provider, so the native dialler already handles them; integrating would mean duplicating a call UI the OS is already showing. |
+
+### Building the mobile apps
+
+```bash
+npm run mobile:add:android   # once, requires Android Studio + SDK
+npm run mobile:add:ios       # once, requires Xcode (macOS only)
+npm run mobile:sync          # after every web build
+```
+
+Set `nativeApiOrigin` in `frontend/src/environments/environment.prod.ts` to the HTTPS API
+origin before a release build. The generated `frontend/android` and `frontend/ios` folders are
+regenerable and therefore not committed.

@@ -2,7 +2,7 @@ import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http'
 import { Injectable, inject } from '@angular/core';
 import { Observable, catchError, map, throwError } from 'rxjs';
 
-import { environment } from '../../../environments/environment';
+import { ApiUrlService } from '../platform/api-url.service';
 import { AppError } from '../models/api-error.model';
 import type { ApiResponse } from '../models/api-response.model';
 
@@ -16,6 +16,7 @@ export type QueryParams = Readonly<Record<string, string | number | boolean | un
 @Injectable({ providedIn: 'root' })
 export class ApiClientService {
   private readonly http = inject(HttpClient);
+  private readonly apiUrl = inject(ApiUrlService);
 
   public get<TData>(path: string, params?: QueryParams): Observable<TData> {
     return this.unwrap(
@@ -63,8 +64,12 @@ export class ApiClientService {
     );
   }
 
+  /**
+   * Native builds need an absolute origin; the web stays relative. Resolved
+   * per call so the platform decision lives in exactly one place.
+   */
   private url(path: string): string {
-    return `${environment.apiBaseUrl}${path}`;
+    return this.apiUrl.resolve(path);
   }
 
   private toHttpParams(params?: QueryParams): HttpParams {

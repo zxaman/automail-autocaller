@@ -11,6 +11,14 @@ export interface AppEnvironment {
    * localhost URL because the browser is not the server host.
    */
   readonly apiBaseUrl: string;
+  /**
+   * Absolute API origin used by native builds only.
+   *
+   * A relative path resolves against the device itself inside a Capacitor
+   * WebView, so native needs a real origin. Left empty for web, where the
+   * relative path is correct and avoids a cross-origin cookie.
+   */
+  readonly nativeApiOrigin: string;
   readonly appName: string;
   /**
    * Google OAuth *client ID* only. This value is public by design; the client

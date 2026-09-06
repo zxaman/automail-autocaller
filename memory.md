@@ -428,3 +428,34 @@ in aggregation - `$eq` on a dead value just returns zero forever.
 
 Reused rather than duplicated: `DashboardRangeFilterComponent` and the pure
 `DashboardActivityChartService` (SVG geometry, no charting dependency).
+
+## Phase 14 - Capacitor Mobile Packaging
+
+Packaged the existing Angular build for Android and iOS. No separate mobile codebase.
+
+The scope in phases.md listed microphone permissions, audio permissions, a native voice SDK
+bridge, CallKit and Android Telecom. All of those were dropped, and the reason is the Phase 9
+finding: calls are bridged by the provider over the PSTN and answered on the user's own
+handset dialler. The app never captures or plays call audio, so requesting microphone access
+would be asking for a permission it cannot justify, and CallKit/Telecom exist to let an app
+present its OWN VoIP calls to the OS - ours are ordinary carrier calls the native dialler is
+already showing. `PlatformCapabilities.hasInAppVoice` and `needsMicrophonePermission` are
+hardcoded false on every platform, with a test asserting it for web, android and ios.
+
+Real problems native packaging exposed, all fixed:
+- A relative `/api/v1` resolves to the DEVICE inside a WebView. Added `nativeApiOrigin` plus
+  `ApiUrlService`, which throws loudly if a native build has no origin configured rather than
+  silently 404ing against the device.
+- `authInterceptor` matched only `url.startsWith('/api')`, so on native every request would
+  have lost `withCredentials` and appeared logged out. It now parses absolute URLs and
+  matches on pathname.
+- Native is cross-origin, so `CORS_ORIGINS` needs `http://localhost` and
+  `capacitor://localhost`, and the session cookie needs `SameSite=None` + `Secure`. Both
+  documented in `.env.example`.
+
+`SecureStorageService` is a no-op on the web on purpose: no browser store is XSS-safe, and the
+web session is already an httpOnly cookie the page cannot read. A localStorage fallback would
+weaken the web build to match the phone. A test asserts nothing is written there.
+
+`frontend/android` and `frontend/ios` are gitignored - regenerable from config plus the web
+build.
