@@ -19,7 +19,8 @@ A centralized communication workspace for importing contacts, making provider-ba
 - Phase 4 contacts: complete.
 - Phase 5 dashboard foundation: complete.
 - Phase 6 flexible spreadsheet import: complete.
-- Remaining feature phases (Gmail connection, AutoMail, AutoCall) are not implemented yet.
+- Phase 7 Gmail account connection: complete.
+- Remaining feature phases (AutoMail, AutoCall) are not implemented yet.
 
 ## Authentication
 
@@ -115,6 +116,49 @@ E.164, emails are format-checked, and a row is rejected if it has no name or no 
 reach the contact. Failures are reported per row using the row number as it appears in
 Excel. Duplicates - both against existing contacts and repeats within the same file - are
 resolved by the chosen strategy: `skip`, `update`, or `import`.
+
+## Connecting a Gmail account
+
+Sending uses Gmail SMTP with a **Google-generated App Password**, never a normal account
+password. App Passwords require 2-Step Verification and are issued at
+<https://myaccount.google.com/apppasswords>.
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| GET | `/api/v1/email-accounts` | Connected accounts (never includes credentials) |
+| POST | `/api/v1/email-accounts` | Connect or reconnect an account |
+| POST | `/api/v1/email-accounts/:id/verify` | Re-check a stored credential against Gmail |
+| POST | `/api/v1/email-accounts/:id/test` | Send a test message |
+| PATCH | `/api/v1/email-accounts/:id/default` | Choose the default sending account |
+| DELETE | `/api/v1/email-accounts/:id` | Disconnect and delete the credential |
+
+### How the credential is protected
+
+- **Verified before stored.** `POST /email-accounts` authenticates against Gmail first; a
+  credential that does not work is never written to the database.
+- **Encrypted with AES-256-GCM.** GCM is authenticated, so a tampered record fails to
+  decrypt rather than yielding altered plaintext. A fresh random IV is used per encryption.
+- **The key lives outside MongoDB**, in `CREDENTIAL_ENCRYPTION_KEY`. Without it the API
+  returns `GMAIL_ENCRYPTION_NOT_CONFIGURED` instead of storing anything insecurely.
+- **Never returned.** The schema marks the credential `select: false`, the DTO mapper lists
+  fields explicitly, and `toJSON`/`toObject` strip it. Three independent layers.
+- **Never logged.** Pino redacts `appPassword`, `credential`, and `ciphertext` at top level,
+  inside `req.body`, and one level deep; this is covered by tests.
+- **Decrypted only for SMTP**, inside a single call, on a transport that is closed
+  immediately afterwards.
+- **Disconnect deletes the record**, so no recoverable secret material is left behind.
+
+Failures are mapped to a fixed vocabulary — `SMTP_AUTH_FAILED`, `SMTP_RATE_LIMITED`,
+`SMTP_TIMEOUT`, `SMTP_CONNECTION_FAILED`, `SMTP_UNAVAILABLE` — because raw SMTP responses
+echo the submitted username and invite credential probing.
+
+Generate a key with:
+
+```bash
+openssl rand -hex 32
+```
+
+Rotating the key invalidates every stored credential and each user must reconnect.
 
 ## Local backend setup
 

@@ -1,0 +1,60 @@
+<article
+  class="account-card"
+  [class.account-card--attention]="needsAttention()"
+  [class.account-card--busy]="isBusy()"
+>
+  <header class="account-card__header">
+    <div class="account-card__identity">
+      <span class="account-card__email">{{ account().email }}</span>
+      <span class="account-card__name text-secondary">{{ account().displayName }}</span>
+    </div>
+
+    <div class="account-card__badges">
+      @if (account().isDefault) {
+        <span class="account-card__badge account-card__badge--default">Default</span>
+      }
+      <span class="account-card__badge" [attr.data-status]="account().status">
+        {{ statusLabel() }}
+      </span>
+    </div>
+  </header>
+
+  <p class="account-card__detail text-muted">{{ statusDetail() }}</p>
+
+  <footer class="account-card__actions">
+    <button
+      type="button"
+      class="account-card__action"
+      [disabled]="isBusy()"
+      (click)="verifyRequested.emit(account().id)"
+    >
+      Verify
+    </button>
+    <button
+      type="button"
+      class="account-card__action"
+      [disabled]="isBusy()"
+      (click)="testRequested.emit(account().id)"
+    >
+      Send test email
+    </button>
+    @if (!account().isDefault) {
+      <button
+        type="button"
+        class="account-card__action"
+        [disabled]="isBusy()"
+        (click)="defaultRequested.emit(account().id)"
+      >
+        Make default
+      </button>
+    }
+    <button
+      type="button"
+      class="account-card__action account-card__action--danger"
+      [disabled]="isBusy()"
+      (click)="disconnectRequested.emit(account().id)"
+    >
+      Disconnect
+    </button>
+  </footer>
+</article>

@@ -26,6 +26,19 @@ const environmentSchema = z.object({
     .transform((value) => value.toLowerCase() === 'true'),
   COOKIE_SAME_SITE: z.enum(['lax', 'strict', 'none']).default('lax'),
   COOKIE_DOMAIN: z.string().trim().min(1).optional(),
+
+  // AES-256-GCM key protecting stored Gmail App Passwords. Must live in the
+  // environment (or a KMS in production) and never in MongoDB or Git.
+  CREDENTIAL_ENCRYPTION_KEY: z.string().trim().min(1).optional(),
+
+  // SMTP transport defaults. Overridable for testing against a local catcher.
+  SMTP_HOST: z.string().trim().min(1).default('smtp.gmail.com'),
+  SMTP_PORT: z.coerce.number().int().min(1).max(65_535).default(465),
+  SMTP_SECURE: z
+    .string()
+    .default('true')
+    .transform((value) => value.toLowerCase() === 'true'),
+  SMTP_TIMEOUT_MS: z.coerce.number().int().min(1000).max(60_000).default(15_000),
 });
 
 const parsedEnvironment = environmentSchema.safeParse(process.env);
@@ -46,3 +59,9 @@ export type Environment = typeof env;
 
 /** True when Google sign-in has been configured for this deployment. */
 export const isGoogleAuthConfigured = Boolean(env.GOOGLE_CLIENT_ID);
+
+/**
+ * True when Gmail sending can be configured. Without a key the API refuses to
+ * accept App Passwords at all rather than storing them weakly.
+ */
+export const isCredentialEncryptionConfigured = Boolean(env.CREDENTIAL_ENCRYPTION_KEY);

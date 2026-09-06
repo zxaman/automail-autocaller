@@ -29,3 +29,19 @@ export const authRateLimiter = rateLimit({
   legacyHeaders: false,
   message: jsonLimitResponse('AUTH_RATE_LIMITED', 'Too many sign-in attempts. Please wait and retry.'),
 });
+
+/**
+ * Guards endpoints that accept or exercise Gmail credentials. Tighter than the
+ * global limit because each attempt reaches an external provider and a loose
+ * limit here would let an attacker probe App Passwords.
+ */
+export const credentialRateLimiter = rateLimit({
+  windowMs: 15 * 60_000,
+  limit: isTest ? 100_000 : 10,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: jsonLimitResponse(
+    'CREDENTIAL_RATE_LIMITED',
+    'Too many attempts. Please wait a few minutes before trying again.',
+  ),
+});

@@ -1,5 +1,11 @@
-<div class="app-page">
-  <app-ui-page-header title="Settings" description="Workspace, account, and connected service configuration." />
+<div class="app-page settings-page">
+  <app-ui-page-header
+    title="Settings"
+    description="Workspace, account, and connected service configuration."
+  />
+
+  <app-email-accounts-page />
+
   <app-ui-coming-soon
     icon="settings"
     [phase]="phase"

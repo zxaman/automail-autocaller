@@ -237,3 +237,37 @@ Tests after phase 6: backend 140 pass + 26 skipped, frontend 69 pass.
 Decision: the wizard blocks commit until every low-confidence column is confirmed and until
 a name plus a phone-or-email are mapped. Guessing silently is how imports quietly corrupt an
 address book.
+
+## Phase 7 - Gmail account connection
+
+Gmail SMTP sending via Google App Passwords, encrypted at rest with AES-256-GCM.
+
+Backend:
+- `infrastructure/crypto/credential-cipher.ts` - AES-256-GCM. Random IV per encryption,
+  auth tag stored separately, versioned envelope. Rejects keys that are not 256-bit rather
+  than padding them. 15 tests including tamper and wrong-key cases.
+- `infrastructure/smtp/smtp-verifier.ts` - builds a transport per operation and closes it,
+  so a decrypted password is never cached. Nodemailer logging is explicitly off.
+- `infrastructure/smtp/smtp-error.ts` - maps raw SMTP failures to a safe fixed vocabulary.
+- `modules/email-accounts/` - model (credential `select: false`, toJSON/toObject strip it,
+  partial unique index for one default per workspace), repository (only
+  `findByIdWithCredential` returns ciphertext), service, controller, validation, mapper.
+- `middleware/rate-limit.middleware.ts` - added `credentialRateLimiter` (10 per 15 min).
+- Logger redaction extended to nested paths, with `logger.spec.ts` proving it.
+
+Frontend (`features/settings/`): `email-accounts-page/`, `components/connect-gmail-form/`
+(App Password held in a component signal only until submit, cleared after), 
+`components/email-account-card/`, models, service. Wired into the settings page.
+
+Config: `CREDENTIAL_ENCRYPTION_KEY`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`,
+`SMTP_TIMEOUT_MS`. No key means the feature is disabled, never a plaintext fallback.
+
+Tests after phase 7: backend 198 pass + 26 skipped, frontend 78 pass.
+
+Decision: the injected cipher is the only source of truth for whether the feature is on.
+An earlier draft also re-read the env flag inside the service, which was a second
+drift-prone copy of the same decision; the tests caught it.
+
+Verified end-to-end against a local fake SMTP server: the API response carried no
+credential field, the stored blob contained no plaintext, the server could still decrypt,
+and the password never crossed the wire in cleartext.

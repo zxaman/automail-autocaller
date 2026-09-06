@@ -9,6 +9,11 @@ export const logger = pino({
     service: 'automail-autocaller-api',
     environment: env.NODE_ENV,
   },
+  /**
+   * Secrets must never reach the log stream. Bare keys cover top-level fields,
+   * the `req.body.*` and `*.*` forms cover the nested shapes that actually
+   * occur (a request body, a service payload, an error's captured context).
+   */
   redact: {
     paths: [
       'req.headers.authorization',
@@ -20,6 +25,15 @@ export const logger = pino({
       'refreshToken',
       'apiKey',
       'secret',
+      'req.body.password',
+      'req.body.appPassword',
+      'req.body.credential',
+      '*.password',
+      '*.appPassword',
+      '*.credential',
+      '*.ciphertext',
+      'ciphertext',
+      'details.appPassword',
     ],
     censor: '[REDACTED]',
   },
