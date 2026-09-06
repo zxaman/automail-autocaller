@@ -13,6 +13,12 @@ export interface EmailAttributes {
   emailAccountId: Types.ObjectId | null;
   fromAddress: string | null;
   subject: string;
+  /**
+   * Snapshot of exactly what was sent. Stored per recipient so history stays
+   * accurate even if the template is later edited or deleted.
+   */
+  bodyHtml: string;
+  bodyText: string;
   status: EmailStatus;
   templateId: Types.ObjectId | null;
   campaignId: Types.ObjectId | null;
@@ -21,7 +27,12 @@ export interface EmailAttributes {
   sentAt: Date | null;
   failedAt: Date | null;
   failureReason: string | null;
+  /** Provider failure code, used to decide whether a retry is worthwhile. */
+  failureCode: string | null;
   attemptCount: number;
+  maxAttempts: number;
+  /** SMTP accepted the message. This is NOT an open or a read. */
+  providerMessageId: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -29,8 +40,9 @@ export interface EmailAttributes {
 export type EmailDocument = HydratedDocument<EmailAttributes>;
 
 /**
- * Email records. Introduced here for dashboard aggregation; sending, queueing,
- * and templating arrive in the AutoMail phase.
+ * One record per recipient. A multi-contact send creates N records and N jobs,
+ * so recipients are never placed in a shared To/Cc field and each delivery has
+ * its own independent status, retry count, and rendered snapshot.
  */
 const emailSchema = new Schema<EmailAttributes>(
   {
@@ -42,6 +54,8 @@ const emailSchema = new Schema<EmailAttributes>(
     emailAccountId: { type: Schema.Types.ObjectId, ref: 'EmailAccount', default: null },
     fromAddress: { type: String, default: null, trim: true, maxlength: 320 },
     subject: { type: String, required: true, trim: true, maxlength: 500 },
+    bodyHtml: { type: String, default: '' },
+    bodyText: { type: String, default: '' },
     status: { type: String, enum: EMAIL_STATUSES, required: true, default: 'draft' },
     templateId: { type: Schema.Types.ObjectId, ref: 'EmailTemplate', default: null },
     campaignId: { type: Schema.Types.ObjectId, ref: 'EmailCampaign', default: null },
@@ -49,6 +63,9 @@ const emailSchema = new Schema<EmailAttributes>(
     queuedAt: { type: Date, default: null },
     sentAt: { type: Date, default: null },
     failedAt: { type: Date, default: null },
+    failureCode: { type: String, default: null },
+    maxAttempts: { type: Number, default: 3, min: 1, max: 10 },
+    providerMessageId: { type: String, default: null },
     failureReason: { type: String, default: null, maxlength: 500 },
     attemptCount: { type: Number, default: 0, min: 0 },
   },

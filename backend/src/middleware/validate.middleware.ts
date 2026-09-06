@@ -37,3 +37,8 @@ export function validate(schema: ZodType, target: ValidationTarget = 'body'): Re
     next();
   };
 }
+
+/** Convenience wrapper: validating and coercing the query string. */
+export function validateQuery(schema: ZodType): RequestHandler {
+  return validate(schema, 'query');
+}

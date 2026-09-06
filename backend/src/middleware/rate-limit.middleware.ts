@@ -45,3 +45,19 @@ export const credentialRateLimiter = rateLimit({
     'Too many attempts. Please wait a few minutes before trying again.',
   ),
 });
+
+/**
+ * Sending is expensive and irreversible, and Gmail enforces a daily cap.
+ * This limits how fast a client can request sends; it is a guard against
+ * runaway scripts, not a substitute for the queue's own pacing.
+ */
+export const sendRateLimiter = rateLimit({
+  windowMs: 60_000,
+  limit: isTest ? 100_000 : 20,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: jsonLimitResponse(
+    'EMAIL_SEND_RATE_LIMITED',
+    'Too many send requests. Please wait a moment before sending again.',
+  ),
+});

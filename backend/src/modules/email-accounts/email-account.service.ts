@@ -182,6 +182,92 @@ export class EmailAccountService {
     }
   }
 
+  /**
+   * Resolves the account a send should go out from, for the composer.
+   *
+   * A disabled or unverified account is rejected here rather than at send
+   * time, so the user is told before a batch is queued.
+   */
+  public async getDefaultAccountOrThrow(scope: EmailAccountScope): Promise<EmailAccountDto> {
+    const account = await this.accountRepository.findDefault(scope);
+
+    if (!account) {
+      throw new AppError(
+        'Connect a Gmail account before sending email',
+        409,
+        'EMAIL_ACCOUNT_NOT_CONNECTED',
+      );
+    }
+
+    return this.assertSendable(account);
+  }
+
+  public async getActiveAccountOrThrow(
+    scope: EmailAccountScope,
+    accountId: string,
+  ): Promise<EmailAccountDto> {
+    const account = await this.accountRepository.findById(scope, accountId);
+
+    if (!account) {
+      throw this.notFound();
+    }
+
+    return this.assertSendable(account);
+  }
+
+  /**
+   * Hands the worker the credential for exactly one send.
+   *
+   * It is decrypted on demand and returned to the caller's local scope only;
+   * nothing here caches it, and the caller must not persist or log it.
+   */
+  public async getSendingCredential(
+    scope: EmailAccountScope,
+    accountId: string,
+  ): Promise<{ email: string; appPassword: string; displayName: string }> {
+    const cipher = this.requireCipher();
+    const account = await this.loadWithCredential(scope, accountId);
+
+    if (account.status === 'disabled') {
+      throw new AppError('This email account is disabled', 409, 'EMAIL_ACCOUNT_DISABLED');
+    }
+
+    return {
+      email: account.email,
+      displayName: account.displayName,
+      appPassword: cipher.decrypt(account.credential),
+    };
+  }
+
+  /** Marks an account unusable after the provider rejects its credential. */
+  public async recordSendFailure(
+    scope: EmailAccountScope,
+    accountId: string,
+    failureCode: string,
+  ): Promise<void> {
+    const account = await this.accountRepository.findById(scope, accountId);
+
+    if (account) {
+      await this.accountRepository.recordVerificationFailure(scope, account._id, failureCode);
+    }
+  }
+
+  private assertSendable(account: EmailAccountDocument): EmailAccountDto {
+    if (account.status === 'disabled') {
+      throw new AppError('This email account is disabled', 409, 'EMAIL_ACCOUNT_DISABLED');
+    }
+
+    if (account.status === 'verification_failed') {
+      throw new AppError(
+        'This email account needs to be reconnected before it can send',
+        409,
+        'EMAIL_ACCOUNT_NEEDS_RECONNECT',
+      );
+    }
+
+    return toEmailAccountDto(account);
+  }
+
   private async loadWithCredential(
     scope: EmailAccountScope,
     accountId: string,

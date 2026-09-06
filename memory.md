@@ -271,3 +271,38 @@ drift-prone copy of the same decision; the tests caught it.
 Verified end-to-end against a local fake SMTP server: the API response carried no
 credential field, the stored blob contained no plaintext, the server could still decrypt,
 and the password never crossed the wire in cleartext.
+
+## Phase 8 — AutoMail composer and queue
+
+Delivered the sending pipeline: compose, personalize, queue, send, and track.
+
+**Queue abstraction.** `QueueDriver` has two implementations. `InProcessQueue` runs jobs
+one at a time with a configurable gap and needs no infrastructure; `RedisQueue` (BullMQ)
+survives restarts and shares its limiter across workers. The sandbox has no Redis, so the
+Redis driver is written to the same contract but exercised only through the shared
+interface. `RetryableJobError` is the single signal that a job should be retried —
+anything else thrown is permanent and is discarded rather than burning attempts.
+
+**Rendering.** `template-renderer.ts` resolves a fixed variable whitelist. The order
+substitute → escape → sanitize matters: contact data is HTML-escaped before it lands in
+the document, so a contact named `<img onerror=...>` becomes inert text. Subjects have
+control characters stripped against header injection.
+
+**One record per recipient.** `compose()` renders per contact and writes N email records,
+then enqueues N jobs — only after the records exist, so no job can reference a missing
+row. The rendered body is frozen onto the record, which means editing a template later
+cannot alter an already-queued message. Contacts without an email are reported as
+`skipped` rather than failing the batch.
+
+**Worker.** Resolves the credential for exactly one send, never caching it. Already-sent
+messages are skipped so a duplicate job cannot double-send. Retryable failures
+(timeout, rate limit, connection) throw `RetryableJobError`; auth failures mark the
+message failed and flag the account.
+
+**Storage.** Attachment bytes go to `ObjectStorage`, never MongoDB. `LocalObjectStorage`
+namespaces keys by workspace, generates UUID filenames, and rejects any key that resolves
+outside its root. Duplicate uploads are deduplicated by checksum.
+
+Tests: backend 262 pass / 26 skipped, frontend 91 pass. Known gaps: no MongoDB or Redis in
+this sandbox, so integration tests skip and the Redis driver is unverified against a real
+server; the composer loads a 100-contact working set pending server-side recipient search.

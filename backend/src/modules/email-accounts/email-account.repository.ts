@@ -59,6 +59,10 @@ export class EmailAccountRepository {
     return EmailAccountModel.findOne({ workspaceId: scope.workspaceId, email }).exec();
   }
 
+  public async findDefault(scope: EmailAccountScope): Promise<EmailAccountDocument | null> {
+    return EmailAccountModel.findOne({ workspaceId: scope.workspaceId, isDefault: true }).exec();
+  }
+
   public async countForWorkspace(scope: EmailAccountScope): Promise<number> {
     return EmailAccountModel.countDocuments({ workspaceId: scope.workspaceId }).exec();
   }

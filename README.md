@@ -20,6 +20,7 @@ A centralized communication workspace for importing contacts, making provider-ba
 - Phase 5 dashboard foundation: complete.
 - Phase 6 flexible spreadsheet import: complete.
 - Phase 7 Gmail account connection: complete.
+- Phase 8 AutoMail composer and queue: complete.
 - Remaining feature phases (AutoMail, AutoCall) are not implemented yet.
 
 ## Authentication
@@ -159,6 +160,68 @@ openssl rand -hex 32
 ```
 
 Rotating the key invalidates every stored credential and each user must reconnect.
+
+## Sending email (AutoMail)
+
+The composer at `/emails` renders and queues **one message per recipient**. There is no
+shared To/Cc/Bcc path anywhere in the send pipeline, so recipients can never see who else
+was contacted, and each delivery carries its own status, attempt count, and failure reason.
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `GET` | `/api/v1/email-templates` | List saved templates |
+| `POST` | `/api/v1/email-templates` | Create a template |
+| `PUT` | `/api/v1/email-templates/:id` | Update a template |
+| `DELETE` | `/api/v1/email-templates/:id` | Delete a template |
+| `GET` | `/api/v1/email-signatures` | List signatures |
+| `POST` | `/api/v1/email-signatures` | Create a signature |
+| `DELETE` | `/api/v1/email-signatures/:id` | Delete a signature |
+| `GET` | `/api/v1/email-attachments` | List the reusable attachment library |
+| `POST` | `/api/v1/email-attachments` | Upload a file (multipart field `file`) |
+| `DELETE` | `/api/v1/email-attachments/:id` | Remove an attachment |
+| `POST` | `/api/v1/emails/preview` | Render the draft for one contact |
+| `POST` | `/api/v1/emails/send` | Queue a personalized send |
+| `GET` | `/api/v1/emails` | Email history (`page`, `pageSize`, `status`, `contactId`) |
+| `GET` | `/api/v1/emails/:id` | One delivery |
+| `POST` | `/api/v1/emails/:id/retry` | Re-queue a failed delivery |
+
+### Personalization
+
+Templates use `{{ contact.name }}` style placeholders. Only a fixed whitelist resolves
+(`contact.name`, `firstName`, `email`, `phone`, `company`, `designation`, `location`, and
+`sender.name`, `sender.email`); anything else renders as empty rather than reaching into
+the object graph. Values are HTML-escaped before insertion and the finished body is
+sanitized, so contact data cannot inject markup or script. Subjects have control
+characters stripped to prevent header injection.
+
+The rendered body is **frozen onto each email record at compose time**. Editing or
+deleting a template afterwards cannot change a message that is already queued, and the
+history shows exactly what was sent.
+
+### Queue and throttling
+
+Sends run through a queue driver chosen by `EMAIL_QUEUE_DRIVER`:
+
+- `memory` (default) — no extra infrastructure, but queued jobs are lost on restart and
+  do not coordinate across instances. Fine for development.
+- `redis` — BullMQ-backed, survives restarts, and shares its rate limiter across every
+  worker. **Use this in production.**
+
+Either way jobs run one at a time with at least `EMAIL_SEND_INTERVAL_MS` between them.
+This paces delivery to stay inside Gmail's sending limits; it is not a way around them.
+Gmail caps free accounts at roughly 500 recipients per day and Workspace accounts at
+about 2,000, and the application makes no attempt to evade that.
+
+Retries are deliberate rather than blanket. Timeouts, rate limiting, and connection
+failures are retried with exponential backoff. An authentication failure or a rejected
+recipient is permanent: it is recorded, the account is flagged where relevant, and no
+further attempts are made, because retrying would only waste quota.
+
+### Attachments
+
+Uploaded bytes go to object storage (`ATTACHMENT_STORAGE_DIR` locally, S3-compatible
+storage in production) and only the key is kept in MongoDB. Identical content uploaded
+twice is deduplicated by checksum. Executables and scripts are rejected at upload.
 
 ## Local backend setup
 

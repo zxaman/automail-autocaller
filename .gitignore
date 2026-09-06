@@ -35,3 +35,6 @@ uploads/
 www/
 android/
 ios/
+
+# Uploaded attachment bytes; these are user data, never source.
+backend/storage/

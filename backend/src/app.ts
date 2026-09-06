@@ -8,12 +8,18 @@ import { env } from './config/environment';
 import { logger } from './infrastructure/logger/logger';
 import { errorMiddleware } from './middleware/error.middleware';
 import { notFoundMiddleware } from './middleware/not-found.middleware';
-import { credentialRateLimiter, globalRateLimiter } from './middleware/rate-limit.middleware';
+import {
+  credentialRateLimiter,
+  globalRateLimiter,
+  sendRateLimiter,
+} from './middleware/rate-limit.middleware';
 import { requestIdMiddleware } from './middleware/request-id.middleware';
 import { createAuthModule } from './modules/auth/auth.module';
 import { createContactModule } from './modules/contacts/contact.module';
 import { createDashboardModule } from './modules/dashboard/dashboard.module';
 import { createEmailAccountModule } from './modules/email-accounts/email-account.module';
+import { createEmailModule } from './modules/emails/email.module';
+import { createEmailRouter } from './routes/email.routes';
 import { createImportModule } from './modules/imports/import.module';
 import { createAuthRouter } from './routes/auth.routes';
 import { createContactRouter } from './routes/contact.routes';
@@ -61,12 +67,20 @@ export function createApp(): express.Express {
   app.use('/api/v1', createContactRouter(createContactModule(), authModule.authenticate));
   app.use('/api/v1', createDashboardRouter(createDashboardModule(), authModule.authenticate));
   app.use('/api/v1', createImportRouter(createImportModule(), authModule.authenticate));
+  // The email module reuses the account module's service instance so both
+  // share one cipher and one view of connected accounts.
+  const emailAccountModule = createEmailAccountModule();
+
   app.use(
     '/api/v1',
-    createEmailAccountRouter(
-      createEmailAccountModule(),
+    createEmailAccountRouter(emailAccountModule, authModule.authenticate, credentialRateLimiter),
+  );
+  app.use(
+    '/api/v1',
+    createEmailRouter(
+      createEmailModule(emailAccountModule.accountService),
       authModule.authenticate,
-      credentialRateLimiter,
+      sendRateLimiter,
     ),
   );
 

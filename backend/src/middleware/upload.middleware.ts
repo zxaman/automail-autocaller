@@ -68,3 +68,67 @@ export function uploadSpreadsheet(fieldName: string): RequestHandler {
     });
   };
 }
+
+/** 10 MB per attachment; Gmail rejects messages far above 25 MB in total. */
+export const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
+
+/**
+ * Attachment uploads.
+ *
+ * Executables and scripts are refused outright: an attachment library is a
+ * convenient way to distribute malware, and a business mailer has no reason to
+ * send one.
+ */
+const BLOCKED_ATTACHMENT_EXTENSIONS = [
+  '.exe', '.bat', '.cmd', '.com', '.cpl', '.dll', '.js', '.jse', '.lnk', '.msi',
+  '.ps1', '.scr', '.sh', '.vb', '.vbs', '.wsf', '.jar', '.app', '.deb', '.dmg',
+];
+
+const attachmentUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: MAX_ATTACHMENT_BYTES, files: 1, fields: 10 },
+  fileFilter: (_req, file, callback) => {
+    const name = file.originalname.toLowerCase();
+    const isBlocked = BLOCKED_ATTACHMENT_EXTENSIONS.some((extension) =>
+      name.endsWith(extension),
+    );
+
+    if (isBlocked) {
+      callback(
+        new AppError(
+          'This file type cannot be sent as an attachment',
+          400,
+          'ATTACHMENT_UNSUPPORTED_FORMAT',
+        ),
+      );
+      return;
+    }
+
+    callback(null, true);
+  },
+});
+
+export function uploadAttachment(fieldName: string): RequestHandler {
+  const handler = attachmentUpload.single(fieldName);
+
+  return (req, res, next) => {
+    handler(req, res, (error: unknown) => {
+      if (!error) {
+        next();
+        return;
+      }
+
+      if (error instanceof multer.MulterError) {
+        if (error.code === 'LIMIT_FILE_SIZE') {
+          next(new AppError('The file is larger than the 10 MB limit', 413, 'ATTACHMENT_TOO_LARGE'));
+          return;
+        }
+
+        next(new AppError('The file could not be uploaded', 400, 'ATTACHMENT_UPLOAD_FAILED'));
+        return;
+      }
+
+      next(error);
+    });
+  };
+}

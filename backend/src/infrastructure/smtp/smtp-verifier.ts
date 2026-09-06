@@ -18,6 +18,29 @@ export interface TestEmailInput extends SmtpCredentials {
   to: string;
 }
 
+export interface OutboundAttachment {
+  filename: string;
+  content: Buffer;
+  contentType: string;
+}
+
+export interface SendMessageInput extends SmtpCredentials {
+  fromName: string;
+  to: string;
+  toName: string | null;
+  subject: string;
+  html: string;
+  text: string;
+  attachments: OutboundAttachment[];
+}
+
+export interface SendMessageResult {
+  success: boolean;
+  /** SMTP acceptance only. This is not an open, a read, or a delivery receipt. */
+  providerMessageId?: string;
+  failure?: SmtpFailure;
+}
+
 /**
  * Owns every outbound SMTP connection.
  *
@@ -57,6 +80,33 @@ export class SmtpVerifier {
       });
 
       return { success: true };
+    } catch (error) {
+      return { success: false, failure: classifySmtpError(error) };
+    } finally {
+      transporter.close();
+    }
+  }
+
+  /**
+   * Sends one message to one recipient.
+   *
+   * There is deliberately no bulk path: every recipient gets an individual
+   * message, so nobody can see who else was contacted.
+   */
+  public async sendMessage(input: SendMessageInput): Promise<SendMessageResult> {
+    const transporter = this.createTransport(input);
+
+    try {
+      const info = await transporter.sendMail({
+        from: { name: input.fromName, address: input.email },
+        to: input.toName ? { name: input.toName, address: input.to } : input.to,
+        subject: input.subject,
+        text: input.text,
+        html: input.html,
+        attachments: input.attachments,
+      });
+
+      return { success: true, providerMessageId: info.messageId };
     } catch (error) {
       return { success: false, failure: classifySmtpError(error) };
     } finally {

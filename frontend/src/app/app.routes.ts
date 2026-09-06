@@ -54,10 +54,10 @@ export const APP_ROUTES: Routes = [
       },
       {
         path: 'emails',
-        title: 'Emails · AutoCall & AutoMail',
+        title: 'Compose email · AutoCall & AutoMail',
         loadComponent: () =>
-          import('./features/emails/emails-page/emails-page.component').then(
-            (m) => m.EmailsPageComponent,
+          import('./features/emails/compose-page/compose-page.component').then(
+            (m) => m.ComposePageComponent,
           ),
       },
       {

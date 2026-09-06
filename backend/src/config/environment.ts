@@ -31,6 +31,17 @@ const environmentSchema = z.object({
   // environment (or a KMS in production) and never in MongoDB or Git.
   CREDENTIAL_ENCRYPTION_KEY: z.string().trim().min(1).optional(),
 
+  // AutoMail queue and attachment storage.
+  // Redis is the production driver; the in-process driver keeps development
+  // working without extra infrastructure, at the cost of losing queued jobs
+  // on restart.
+  EMAIL_QUEUE_DRIVER: z.enum(['memory', 'redis']).default('memory'),
+  // Gmail's limits are per-day, but pacing sends also avoids tripping its
+  // per-connection throttles. 1200ms ≈ 50 messages a minute.
+  EMAIL_SEND_INTERVAL_MS: z.coerce.number().int().min(0).max(60_000).default(1200),
+  EMAIL_MAX_ATTEMPTS: z.coerce.number().int().min(1).max(10).default(3),
+  ATTACHMENT_STORAGE_DIR: z.string().trim().min(1).default('storage/attachments'),
+
   // SMTP transport defaults. Overridable for testing against a local catcher.
   SMTP_HOST: z.string().trim().min(1).default('smtp.gmail.com'),
   SMTP_PORT: z.coerce.number().int().min(1).max(65_535).default(465),
