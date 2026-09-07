@@ -65,4 +65,25 @@ export class AuthController {
       }
     })();
   };
+
+  public devLogin: RequestHandler = (req, res, next) => {
+    void (async () => {
+      try {
+        const result = await this.authService.devLogin({
+          userAgent: req.header('user-agent')?.slice(0, 512) ?? null,
+          ipAddress: req.ip ?? null,
+        });
+
+        setSessionCookie(res, result.token, result.expiresAt);
+        sendSuccess(
+          res,
+          result.isNewUser ? 201 : 200,
+          result.isNewUser ? 'Dev workspace created' : 'Signed in as dev user',
+          result.user,
+        );
+      } catch (error) {
+        next(error);
+      }
+    })();
+  };
 }

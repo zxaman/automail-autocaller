@@ -6,6 +6,7 @@ import { AppError } from '../../../core/models/api-error.model';
 import { AuthService } from '../../../core/services/auth.service';
 import { GoogleIdentityService } from '../../../core/services/google-identity.service';
 import { NotificationService } from '../../../core/services/notification.service';
+import { environment } from '../../../../environments/environment';
 import type { LoginPageState } from './login-page.model';
 
 /**
@@ -32,9 +33,14 @@ export class LoginPageService {
   public readonly isSubmitting = computed(() => this.stateSignal().phase === 'submitting');
   public readonly isUnavailable = computed(() => this.stateSignal().phase === 'unavailable');
   public readonly isInitializing = computed(() => this.stateSignal().phase === 'initializing');
+  public readonly isDevMode = !environment.production;
+
+  private returnUrl = '/dashboard';
 
   /** Mounts the official Google button and handles each credential response. */
   public mountGoogleButton(container: HTMLElement, returnUrl: string): void {
+    this.returnUrl = returnUrl || '/dashboard';
+
     if (!this.googleIdentity.isConfigured) {
       this.stateSignal.set({
         phase: 'unavailable',
@@ -58,6 +64,28 @@ export class LoginPageService {
       });
 
     this.stateSignal.set({ phase: 'ready', errorMessage: null });
+  }
+
+  /** Development-only: sign in without Google OAuth. */
+  public loginAsDev(): void {
+    this.stateSignal.set({ phase: 'submitting', errorMessage: null });
+
+    this.authService
+      .devLogin()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (user) => {
+          this.stateSignal.set({ phase: 'ready', errorMessage: null });
+          this.notificationService.success(`Signed in as ${user.name} (dev mode).`);
+          void this.router.navigateByUrl(this.sanitizeReturnUrl(this.returnUrl));
+        },
+        error: (error: unknown) => {
+          this.stateSignal.set({
+            phase: 'ready',
+            errorMessage: this.toMessage(error),
+          });
+        },
+      });
   }
 
   private exchangeCredential(idToken: string, returnUrl: string): void {

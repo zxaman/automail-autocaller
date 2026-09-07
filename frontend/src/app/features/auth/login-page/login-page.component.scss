@@ -76,6 +76,18 @@
   color: var(--color-text-muted);
 }
 
+.login__dev {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  align-items: flex-start;
+}
+
+.login__dev-hint {
+  font-size: var(--font-size-caption);
+  color: var(--color-text-muted);
+}
+
 .login__aside {
   display: flex;
   align-items: center;

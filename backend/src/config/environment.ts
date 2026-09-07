@@ -1,6 +1,17 @@
 import 'dotenv/config';
 import { z } from 'zod';
 
+/**
+ * Preprocessor that treats empty / whitespace-only strings the same as a
+ * missing value.  dotenv loads `KEY=` as `""`, which Zod considers a present
+ * string and then fails `.min(1)`.  Wrapping optional env vars with this
+ * transform lets both `KEY=` and an entirely absent key resolve to `undefined`.
+ */
+const emptyToUndefined = z.preprocess(
+  (val) => (typeof val === 'string' && val.trim() === '' ? undefined : val),
+  z.string().trim().min(1).optional(),
+);
+
 const environmentSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().min(1).max(65_535).default(3000),
@@ -16,7 +27,7 @@ const environmentSchema = z.object({
 
   // Google sign-in. The client ID is public; no client secret is needed for the
   // ID-token flow used by the SPA and the Capacitor shell.
-  GOOGLE_CLIENT_ID: z.string().trim().min(1).optional(),
+  GOOGLE_CLIENT_ID: emptyToUndefined,
 
   // Session cookie behaviour.
   SESSION_TTL_DAYS: z.coerce.number().int().min(1).max(90).default(7),
@@ -25,11 +36,11 @@ const environmentSchema = z.object({
     .default('false')
     .transform((value) => value.toLowerCase() === 'true'),
   COOKIE_SAME_SITE: z.enum(['lax', 'strict', 'none']).default('lax'),
-  COOKIE_DOMAIN: z.string().trim().min(1).optional(),
+  COOKIE_DOMAIN: emptyToUndefined,
 
   // AES-256-GCM key protecting stored Gmail App Passwords. Must live in the
   // environment (or a KMS in production) and never in MongoDB or Git.
-  CREDENTIAL_ENCRYPTION_KEY: z.string().trim().min(1).optional(),
+  CREDENTIAL_ENCRYPTION_KEY: emptyToUndefined,
 
   // AutoMail queue and attachment storage.
   // Redis is the production driver; the in-process driver keeps development
@@ -43,17 +54,17 @@ const environmentSchema = z.object({
   ATTACHMENT_STORAGE_DIR: z.string().trim().min(1).default('storage/attachments'),
 
   // Telephony (AutoCall). Provider is resolved per call by destination country.
-  EXOTEL_ACCOUNT_SID: z.string().trim().min(1).optional(),
-  EXOTEL_API_KEY: z.string().trim().min(1).optional(),
-  EXOTEL_API_TOKEN: z.string().trim().min(1).optional(),
+  EXOTEL_ACCOUNT_SID: emptyToUndefined,
+  EXOTEL_API_KEY: emptyToUndefined,
+  EXOTEL_API_TOKEN: emptyToUndefined,
   EXOTEL_SUBDOMAIN: z.string().trim().min(1).default('api.in.exotel.com'),
-  EXOTEL_CALLER_ID: z.string().trim().min(1).optional(),
-  DEFAULT_CALLER_ID: z.string().trim().min(1).optional(),
+  EXOTEL_CALLER_ID: emptyToUndefined,
+  DEFAULT_CALLER_ID: emptyToUndefined,
   // Verifies provider webhooks. Without it, call outcomes can be forged.
-  TELEPHONY_WEBHOOK_SECRET: z.string().trim().min(1).optional(),
+  TELEPHONY_WEBHOOK_SECRET: emptyToUndefined,
 
   // Bearer token protecting /api/v1/metrics. Unset disables the endpoint.
-  METRICS_TOKEN: z.string().trim().min(1).optional(),
+  METRICS_TOKEN: emptyToUndefined,
 
   // Surfaced by /health/ready so an incident can be tied to a deploy.
   APP_VERSION: z.string().trim().min(1).default('dev'),

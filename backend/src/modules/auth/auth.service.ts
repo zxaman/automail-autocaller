@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 
+import { env } from '../../config/environment';
 import type { GoogleTokenVerifier } from '../../infrastructure/google/google-token-verifier';
 import { logger } from '../../infrastructure/logger/logger';
 import { AppError } from '../../shared/errors/app-error';
@@ -106,6 +107,58 @@ export class AuthService {
 
   public async logout(token: string): Promise<void> {
     await this.sessionService.revoke(token);
+  }
+
+  /**
+   * Development-only login. Creates or reuses a deterministic local user so
+   * that developers can reach the dashboard without a Google Client ID.
+   *
+   * This method hard-throws in production to prevent accidental exposure.
+   */
+  public async devLogin(context: LoginRequestContext): Promise<LoginResult> {
+    if (env.NODE_ENV === 'production') {
+      throw new AppError('Dev login is not available in production', 403, 'DEV_LOGIN_FORBIDDEN');
+    }
+
+    const DEV_GOOGLE_ID = 'dev-local-00000000';
+    const DEV_EMAIL = 'dev@localhost';
+    const DEV_NAME = 'Dev User';
+
+    let user = await this.userRepository.findByGoogleId(DEV_GOOGLE_ID);
+    let isNewUser = false;
+
+    if (!user) {
+      user = await this.provisionUser({
+        googleId: DEV_GOOGLE_ID,
+        email: DEV_EMAIL,
+        name: DEV_NAME,
+        pictureUrl: null,
+      });
+      isNewUser = true;
+    }
+
+    const now = new Date();
+    await this.userRepository.touchLogin(user._id, now);
+    user.lastLoginAt = now;
+
+    const issued = await this.sessionService.issue({
+      userId: user._id,
+      workspaceId: user.workspaceId,
+      userAgent: context.userAgent,
+      ipAddress: context.ipAddress,
+    });
+
+    logger.info(
+      { userId: user._id.toString(), isNewUser },
+      'Dev user authenticated (development only)',
+    );
+
+    return {
+      user: toAuthenticatedUserDto(user),
+      token: issued.token,
+      expiresAt: issued.expiresAt,
+      isNewUser,
+    };
   }
 
   /**

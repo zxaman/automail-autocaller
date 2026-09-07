@@ -8,6 +8,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatButtonModule } from '@angular/material/button';
 
 import { UiLoadingSpinnerComponent } from '../../../shared/components/ui-loading-spinner/ui-loading-spinner.component';
 import type { LoginRedirectReason } from './login-page.model';
@@ -23,7 +24,7 @@ import { LoginPageService } from './login-page.service';
 @Component({
   selector: 'app-login-page',
   standalone: true,
-  imports: [MatProgressBarModule, UiLoadingSpinnerComponent],
+  imports: [MatProgressBarModule, MatButtonModule, UiLoadingSpinnerComponent],
   providers: [LoginPageService],
   templateUrl: './login-page.component.html',
   styleUrl: './login-page.component.scss',
@@ -42,11 +43,16 @@ export class LoginPageComponent implements AfterViewInit {
   protected readonly isUnavailable = this.loginPageService.isUnavailable;
   protected readonly isInitializing = this.loginPageService.isInitializing;
   protected readonly errorMessage = this.loginPageService.errorMessage;
+  protected readonly isDevMode = this.loginPageService.isDevMode;
 
   public ngAfterViewInit(): void {
     this.loginPageService.mountGoogleButton(
       this.googleButton().nativeElement,
       this.returnUrl() || '/dashboard',
     );
+  }
+
+  protected loginAsDev(): void {
+    this.loginPageService.loginAsDev();
   }
 }
