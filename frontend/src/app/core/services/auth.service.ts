@@ -58,6 +58,13 @@ export class AuthService {
       .pipe(tap((user) => this.setAuthenticated(user)));
   }
 
+  /** Development-only: creates a session without Google OAuth. */
+  public devLogin(): Observable<AuthenticatedUser> {
+    return this.api
+      .post<AuthenticatedUser>(API_ENDPOINTS.auth.devLogin, {})
+      .pipe(tap((user) => this.setAuthenticated(user)));
+  }
+
   public logout(): Observable<unknown> {
     return this.api.post<unknown>(API_ENDPOINTS.auth.logout).pipe(
       tap(() => this.clearSession()),

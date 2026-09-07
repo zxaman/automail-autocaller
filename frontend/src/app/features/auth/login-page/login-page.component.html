@@ -34,6 +34,23 @@
       }
     </div>
 
+    @if (isDevMode && isUnavailable()) {
+      <div class="login__dev">
+        <button
+          mat-flat-button
+          color="primary"
+          type="button"
+          [disabled]="isSubmitting()"
+          (click)="loginAsDev()"
+        >
+          Sign in as Dev User
+        </button>
+        <p class="login__dev-hint">
+          ⚠️ Development only — bypasses Google OAuth for local testing.
+        </p>
+      </div>
+    }
+
     <p class="login__legal">
       We never ask for your Gmail password. Gmail sending is connected separately with a Google
       App Password that is verified and encrypted on the server.

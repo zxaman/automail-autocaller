@@ -1,5 +1,6 @@
 import { Router } from 'express';
 
+import { env } from '../config/environment';
 import { authRateLimiter } from '../middleware/rate-limit.middleware';
 import { validate } from '../middleware/validate.middleware';
 import type { AuthModule } from '../modules/auth/auth.module';
@@ -21,6 +22,11 @@ export function createAuthRouter(authModule: AuthModule): Router {
   );
   router.get('/auth/me', authenticate, authController.getCurrentUser);
   router.post('/auth/logout', authenticate, authController.logout);
+
+  // Development-only: bypass Google OAuth for local testing.
+  if (env.NODE_ENV !== 'production') {
+    router.post('/auth/dev-login', authRateLimiter, authController.devLogin);
+  }
 
   return router;
 }
