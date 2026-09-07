@@ -540,3 +540,85 @@ those same values to prove they actually throttle and return 429.
   count behind a load balancer. A shared store is needed before scaling out.
 - There is no automated dependency scanning in CI yet; `npm audit` was run
   by hand.
+
+
+## Phase 16 — Production Readiness
+
+The last phase: make the system deployable, observable and recoverable.
+
+### Refuse to start rather than boot broken
+
+Every secret is `optional()` in the schema so a developer can run the app
+without a Google project or an Exotel account. In production that convenience
+is a hazard — the container starts fine and the missing value only surfaces
+when a user tries to sign in. `findMissingProductionSettings` runs at import
+when `NODE_ENV=production` and throws with a per-setting explanation.
+
+It also rejects configurations that are present but unsafe: a `localhost`
+MongoDB URI (in a container that is the container itself), `COOKIE_SECURE`
+off, and the in-process queue driver. Telephony is treated as all-or-nothing,
+since a half-configured provider fails at dial time in front of a user, while
+*no* telephony config is legitimate for an AutoMail-only deployment.
+
+### Health checks that mean something
+
+Liveness deliberately checks nothing beyond "the process runs". Had it
+consulted MongoDB, a brief database outage would fail liveness on every
+instance at once and the orchestrator would kill them all — turning a
+recoverable blip into a restart storm.
+
+Readiness has three states, not two. `degraded` (in-process queue: works, but
+loses mail on restart) keeps serving; only `not-ready` returns 503. It also
+reports queue depth, which is the earliest signal that the send worker has
+stalled — the reason the email module had to be hoisted in `app.ts`.
+
+### Observability
+
+A tiny counter module rather than a Prometheus client dependency: the
+operational question is "did sends start failing", which a few labelled
+counters answer, and the output is already Prometheus text so a real client
+can replace it later. Failures are labelled by code so an alert can tell a
+revoked App Password from a provider outage.
+
+`/metrics` is behind a bearer token and returns 404 when `METRICS_TOKEN` is
+unset — counters leak business volume, so the endpoint is never open. Adding
+it immediately tripped the Phase 15 route-authorization test, which is exactly
+what that test was built to do.
+
+### Graceful shutdown
+
+The previous handler called `server.close()` and never exited, relying on the
+event loop draining. It now stops accepting connections, finishes in-flight
+requests, closes the queue (after the HTTP server, so a request mid-enqueue
+still completes), disconnects, and exits — with a 15 s forced timeout so a
+stuck socket cannot hold the container until SIGKILL. Unhandled rejections and
+uncaught exceptions now shut down too, rather than leaving a process in an
+unknown state serving traffic.
+
+### Backups
+
+`mongodump` exits 0 in situations that still produce an unusable archive, so
+the script always reads it back with `mongorestore --dryRun`. Restore defaults
+to a dry run and requires `CONFIRM=yes`, because a restore command is easy to
+re-run out of shell history against the wrong database.
+
+### Documentation
+
+`docs/api.md` covers all 51 endpoints — verified against the router at runtime
+rather than written from memory. `docs/runbook.md` is symptom-first.
+
+### Known limitations
+
+- **No Docker daemon in this sandbox, so no image was ever built or run.** The
+  Dockerfiles and compose file are reviewed and structurally validated (every
+  compose variable is present in the env template, no tabs, stages resolve),
+  but "deployment is repeatable" is unproven by execution.
+- **Backups were never exercised**: no `mongodump` binary and no MongoDB here.
+  The restore drill in the runbook must be run for real before relying on it.
+- Metrics counters are per-process; a scraper must aggregate across instances.
+  Same caveat as the analytics cache and the rate limiters.
+- No CI pipeline, no alerting infrastructure, no secret-manager integration —
+  the runbook documents thresholds and `.env.production.example` documents the
+  inputs, but wiring them to a specific provider is a deployment-time task.
+- Attachments on the local storage driver make an instance stateful; object
+  storage is needed before running more than one replica.

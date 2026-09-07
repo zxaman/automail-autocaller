@@ -4,6 +4,7 @@ import { RetryableJobError, type JobContext } from '../../infrastructure/queue/j
 import type { ObjectStorage } from '../../infrastructure/storage/object-storage';
 import type { OutboundAttachment, SmtpVerifier } from '../../infrastructure/smtp/smtp-verifier';
 import { logger } from '../../infrastructure/logger/logger';
+import { incrementCounter, METRICS } from '../../infrastructure/observability/metrics';
 import type { EmailAccountService } from '../email-accounts/email-account.service';
 import type { EmailRepository } from './email.repository';
 import type { EmailJobPayload } from './email.types';
@@ -63,6 +64,7 @@ export class EmailWorker {
     }
 
     await this.repository.markSending(scope, payload.emailId);
+    incrementCounter(METRICS.emailSendAttempts, 'Email send attempts, including retries.');
 
     let credential;
     try {
@@ -113,6 +115,13 @@ export class EmailWorker {
 
     if (!isRetryable || isLastAttempt) {
       await this.repository.markFailed(scope, payload.emailId, failure.code, failure.message);
+      // Labelled by code so an alert can distinguish a revoked App Password
+      // from a transient provider outage.
+      incrementCounter(
+        METRICS.emailSendFailures,
+        'Emails that failed permanently, labelled by failure code.',
+        { code: failure.code },
+      );
       logger.warn(
         { emailId: payload.emailId, code: failure.code, attempt: context.attempt, isRetryable },
         'Email delivery failed permanently',

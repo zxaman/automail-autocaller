@@ -4,6 +4,10 @@ node_modules/
 # Environment and secrets
 .env
 .env.*
+# Templates carry no values and must be committed; the broad rule above still
+# blocks every real environment file.
+!.env.example
+!.env.production.example
 !.env.example
 
 # Build output

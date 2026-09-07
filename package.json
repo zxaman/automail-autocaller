@@ -16,7 +16,14 @@
     "web:test": "npm --prefix frontend run test",
     "mobile:sync": "npm --prefix frontend run cap:sync",
     "mobile:add:android": "npm --prefix frontend run cap:add:android",
-    "mobile:add:ios": "npm --prefix frontend run cap:add:ios"
+    "mobile:add:ios": "npm --prefix frontend run cap:add:ios",
+    "docker:build": "docker compose -f docker-compose.prod.yml build",
+    "docker:up": "docker compose -f docker-compose.prod.yml --env-file .env.production up -d",
+    "docker:down": "docker compose -f docker-compose.prod.yml down",
+    "docker:logs": "docker compose -f docker-compose.prod.yml logs -f api",
+    "db:backup": "./scripts/backup-mongodb.sh",
+    "db:restore": "./scripts/restore-mongodb.sh",
+    "verify": "npm run api:test && npm run web:test && npm --prefix backend run typecheck"
   },
   "engines": {
     "node": ">=20.0.0"

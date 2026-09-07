@@ -1,10 +1,34 @@
-node_modules
-npm-debug.log
+# Build context is the repository root for both images, so this must exclude
+# everything neither image needs. Keeping the context small also keeps secrets
+# and multi-hundred-megabyte directories out of the daemon entirely.
+
 .git
+.gitignore
+
+# Never let a real environment file reach an image layer.
 .env
-coverage
+.env.*
+!.env.example
+
+node_modules
+**/node_modules
+npm-debug.log*
+
+# Build outputs are produced inside the image, never copied in.
 dist
+**/dist
 build
+**/build
+coverage
+**/coverage
 .angular
-android
-ios
+**/.angular
+
+# Native shells are built by Capacitor from the web bundle.
+frontend/android
+frontend/ios
+
+# Docs and local-only tooling add nothing to a runtime image.
+*.md
+docker-compose*.yml
+storage

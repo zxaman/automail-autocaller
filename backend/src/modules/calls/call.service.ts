@@ -1,6 +1,7 @@
 import { Types } from 'mongoose';
 
 import { logger } from '../../infrastructure/logger/logger';
+import { incrementCounter, METRICS } from '../../infrastructure/observability/metrics';
 import { routeCall, type TelephonyProviderName } from '../../infrastructure/telephony/call-routing';
 import {
   TelephonyError,
@@ -151,6 +152,13 @@ export class CallService {
     const verification = provider.verifyWebhook(request);
 
     if (!verification.verified) {
+      // Alertable: a sustained rate means the shared secret has drifted from
+      // the provider's, or someone is forging callbacks.
+      incrementCounter(
+        METRICS.webhooksRejected,
+        'Telephony webhooks rejected before processing.',
+        { provider: providerName },
+      );
       logger.warn(
         { provider: providerName, reason: verification.reason },
         'Rejected an unverified telephony webhook',

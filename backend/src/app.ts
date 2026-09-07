@@ -33,7 +33,17 @@ import { createContactRouter } from './routes/contact.routes';
 import { createDashboardRouter } from './routes/dashboard.routes';
 import { createEmailAccountRouter } from './routes/email-account.routes';
 import { createImportRouter } from './routes/import.routes';
-import { healthRouter } from './routes/health.routes';
+import { createHealthRouter } from './routes/health.routes';
+import { HealthService } from './modules/health/health.service';
+
+/**
+ * Resources that must be released on shutdown. Returned alongside the app so
+ * the server can drain them; kept out of module scope so tests that build an
+ * app do not share a queue.
+ */
+export interface AppResources {
+  closeQueue(): Promise<void>;
+}
 
 export function createApp(): express.Express {
   const app = express();
@@ -69,7 +79,6 @@ export function createApp(): express.Express {
 
   const authModule = createAuthModule();
 
-  app.use('/api/v1', healthRouter);
   app.use('/api/v1', createAuthRouter(authModule));
   app.use('/api/v1', createContactRouter(createContactModule(), authModule.authenticate));
   app.use('/api/v1', createDashboardRouter(createDashboardModule(), authModule.authenticate));
@@ -82,14 +91,17 @@ export function createApp(): express.Express {
     '/api/v1',
     createEmailAccountRouter(emailAccountModule, authModule.authenticate, credentialRateLimiter),
   );
+  // Hoisted so the health endpoint can report real queue depth: an email
+  // backlog is the clearest early signal that the send worker has stalled.
+  const emailModule = createEmailModule(emailAccountModule.accountService);
+
   app.use(
     '/api/v1',
-    createEmailRouter(
-      createEmailModule(emailAccountModule.accountService),
-      authModule.authenticate,
-      sendRateLimiter,
-    ),
+    createEmailRouter(emailModule, authModule.authenticate, sendRateLimiter),
   );
+
+  // Mounted after the email module so readiness can report the real queue.
+  app.use('/api/v1', createHealthRouter(new HealthService(emailModule.queue)));
 
   app.use(
     '/api/v1',
@@ -102,6 +114,11 @@ export function createApp(): express.Express {
 
   app.use(notFoundMiddleware);
   app.use(errorMiddleware);
+
+  // Exposed for the shutdown path in server.ts.
+  (app as express.Express & { resources?: AppResources }).resources = {
+    closeQueue: () => emailModule.queue.close(),
+  };
 
   return app;
 }

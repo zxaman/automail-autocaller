@@ -39,7 +39,14 @@ A centralized communication workspace for importing contacts, making provider-ba
 - Phase 12 unified communication timeline: complete. One chronological history per contact
   merging calls, emails (with attachment metadata), notes, and the import that created the
   contact, plus a call-completed follow-up that prefills the composer.
-- Remaining feature phases (AutoMail, AutoCall) are not implemented yet.
+- Phase 15 security hardening: complete. See the Security section below.
+- Phase 16 production readiness: complete. Production images, deployment configuration,
+  meaningful health checks, metrics, graceful shutdown, verified backup scripts, API
+  reference (`docs/api.md`) and an on-call runbook (`docs/runbook.md`). No image has been
+  built or run here, and the backup scripts have not been executed: neither Docker nor
+  MongoDB is available in the development sandbox.
+
+All 16 planned phases are delivered except Phase 11 (call recording), which was cancelled.
 
 ## Authentication
 
@@ -322,3 +329,57 @@ provider cannot send a cookie).
   horizontally.
 - Run `npm audit` in both `backend/` and `frontend/` before a release; it is
   not yet wired into CI.
+
+
+## Deployment
+
+Production images are multi-stage and run as a non-root user. The build context
+for both is the **repository root**, because the TypeScript configs extend a
+shared file one level up.
+
+```bash
+cp .env.production.example .env.production   # then fill from your secret manager
+docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
+curl -sf https://<host>/api/v1/health/ready
+```
+
+The API **refuses to start in production** when a required setting is missing or
+unsafe, and names what is wrong. This is deliberate: a container that boots
+half-configured fails later, in front of a user, instead of at deploy time.
+It checks for a Google client ID, a credential encryption key, a non-localhost
+MongoDB URI, `COOKIE_SECURE=true`, the Redis queue driver, and — if telephony is
+configured at all — every Exotel value including the webhook secret.
+
+`docs/api.md` documents all 51 endpoints. `docs/runbook.md` is the on-call
+guide: symptoms, how to confirm them, and what to do.
+
+### Health and observability
+
+| Endpoint | Purpose |
+| --- | --- |
+| `GET /api/v1/health/live` | Liveness. Checks nothing else, so a dependency blip cannot cause a restart loop. |
+| `GET /api/v1/health/ready` | Readiness. 503 when a hard dependency is down, so the load balancer drains the instance. Reports dependency state, queue depth, uptime and version. |
+| `GET /api/v1/metrics` | Prometheus counters. Requires `METRICS_TOKEN`; returns 404 when unset. |
+
+Readiness distinguishes **degraded** from **not-ready**: running on the
+in-process queue is degraded (it works, but a restart loses queued mail) and
+keeps serving traffic, while an unreachable database or queue is not-ready and
+takes the instance out of rotation.
+
+Shutdown is graceful. On SIGTERM the server stops accepting connections, lets
+in-flight requests finish, closes the queue, then exits — with a 15 s cap so a
+stuck socket cannot hang the container.
+
+### Backups
+
+```bash
+MONGODB_URI="..." npm run db:backup            # dumps, then verifies by reading back
+CONFIRM=yes MONGODB_URI="..." npm run db:restore backups/automail-<ts>.gz
+```
+
+`backup-mongodb.sh` always re-reads each archive with `mongorestore --dryRun`,
+because `mongodump` can exit 0 and still leave an unusable file. Restore
+defaults to a dry run and needs `CONFIRM=yes` to write.
+
+**Attachments are not included in the database dump.** Back up the attachments
+volume separately, or use object storage with versioning enabled.

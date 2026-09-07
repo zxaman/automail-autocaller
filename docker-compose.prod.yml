@@ -1,0 +1,113 @@
+# Production-shaped deployment.
+#
+# This runs the real images with the real drivers (Redis queue, secure cookies)
+# so a staging environment behaves like production. Managed MongoDB, Redis and
+# object storage are the recommended production choice; the containers here are
+# for self-hosted or staging use, and the compose file points at whichever the
+# environment supplies.
+#
+#   docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
+#
+# Every secret is read from the environment. Nothing sensitive is written here.
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    image: automail-autocaller/api:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      # Behind nginx, so the client IP arrives in X-Forwarded-For. Rate limits
+      # would otherwise all attribute to the proxy's address.
+      TRUST_PROXY: "true"
+      MONGODB_URI: ${MONGODB_URI:?set MONGODB_URI}
+      REDIS_URL: ${REDIS_URL:?set REDIS_URL}
+      CORS_ORIGINS: ${CORS_ORIGINS:?set CORS_ORIGINS}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:?set GOOGLE_CLIENT_ID}
+      CREDENTIAL_ENCRYPTION_KEY: ${CREDENTIAL_ENCRYPTION_KEY:?set CREDENTIAL_ENCRYPTION_KEY}
+      COOKIE_SECURE: "true"
+      COOKIE_SAME_SITE: ${COOKIE_SAME_SITE:-lax}
+      COOKIE_DOMAIN: ${COOKIE_DOMAIN:-}
+      EMAIL_QUEUE_DRIVER: redis
+      EXOTEL_ACCOUNT_SID: ${EXOTEL_ACCOUNT_SID:-}
+      EXOTEL_API_KEY: ${EXOTEL_API_KEY:-}
+      EXOTEL_API_TOKEN: ${EXOTEL_API_TOKEN:-}
+      EXOTEL_SUBDOMAIN: ${EXOTEL_SUBDOMAIN:-api.in.exotel.com}
+      EXOTEL_CALLER_ID: ${EXOTEL_CALLER_ID:-}
+      TELEPHONY_WEBHOOK_SECRET: ${TELEPHONY_WEBHOOK_SECRET:-}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    volumes:
+      # Only used by the local storage driver. Prefer object storage in
+      # production so instances stay stateless and horizontally scalable.
+      - attachments:/app/storage/attachments
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/api/v1/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  web:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    image: automail-autocaller/web:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    environment:
+      # Same-origin proxy target inside the compose network.
+      API_ORIGIN: http://api:3000
+    ports:
+      - "${WEB_PORT:-8080}:8080"
+    depends_on:
+      api:
+        condition: service_healthy
+
+  mongodb:
+    image: mongo:8
+    restart: unless-stopped
+    command: ["--auth"]
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:?set MONGO_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:?set MONGO_ROOT_PASSWORD}
+      MONGO_INITDB_DATABASE: automail_autocaller
+    volumes:
+      - mongodb_data:/data/db
+      # Backups are written here by scripts/backup-mongodb.sh.
+      - ./backups:/backups
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    # appendonly keeps queued email jobs across a restart. Without it a restart
+    # silently drops everything still waiting to send.
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:?set REDIS_PASSWORD}"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "--no-auth-warning", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  mongodb_data:
+  redis_data:
+  attachments:
