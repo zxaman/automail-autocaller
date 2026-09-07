@@ -9,6 +9,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 
+import { AppError } from '../../../core/models/api-error.model';
 import { AuthService } from '../../../core/services/auth.service';
 
 function passwordMatchValidator(control: AbstractControl): ValidationErrors | null {
@@ -89,11 +90,16 @@ export class RegisterPageComponent {
 
     this.authService.register(payload).subscribe({
       next: () => {
+        this.isSubmitting.set(false);
         this.router.navigateByUrl('/dashboard');
       },
       error: (err: unknown) => {
         this.isSubmitting.set(false);
-        this.errorMessage.set('Registration failed. Please check your details and try again.');
+        this.errorMessage.set(
+          err instanceof AppError
+            ? err.message
+            : 'Registration failed. Please check your details and try again.',
+        );
         console.error('Registration error', err);
       },
     });

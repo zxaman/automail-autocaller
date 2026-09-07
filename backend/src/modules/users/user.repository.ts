@@ -42,4 +42,8 @@ export class UserRepository {
   public async touchLogin(userId: Types.ObjectId, at: Date): Promise<void> {
     await UserModel.updateOne({ _id: userId }, { $set: { lastLoginAt: at } }).exec();
   }
+
+  public async deleteById(userId: Types.ObjectId): Promise<void> {
+    await UserModel.deleteOne({ _id: userId }).exec();
+  }
 }

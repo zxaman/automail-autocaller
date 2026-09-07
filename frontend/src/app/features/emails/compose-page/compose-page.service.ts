@@ -6,6 +6,7 @@ import { NotificationService } from '../../../core/services/notification.service
 import { DEFAULT_CONTACT_QUERY } from '../../contacts/models/contact-query.model';
 import type { Contact } from '../../contacts/models/contact.model';
 import { ContactService } from '../../contacts/services/contact.service';
+import type { ContactPayload } from '../../contacts/models/contact.model';
 import type {
   EmailAttachment,
   EmailPreview,
@@ -36,6 +37,7 @@ export class ComposePageService {
   private readonly attachmentsSignal = signal<readonly EmailAttachment[]>([]);
   private readonly selectedAttachmentIdsSignal = signal<ReadonlySet<string>>(new Set());
   private readonly historySignal = signal<readonly EmailRecord[]>([]);
+  private readonly recipientDraftSignal = signal('');
 
   private readonly subjectSignal = signal('');
   private readonly bodyHtmlSignal = signal('');
@@ -56,6 +58,7 @@ export class ComposePageService {
   public readonly signatures = this.signaturesSignal.asReadonly();
   public readonly attachments = this.attachmentsSignal.asReadonly();
   public readonly history = this.historySignal.asReadonly();
+  public readonly recipientDraft = this.recipientDraftSignal.asReadonly();
   public readonly subject = this.subjectSignal.asReadonly();
   public readonly bodyHtml = this.bodyHtmlSignal.asReadonly();
   public readonly templateId = this.templateIdSignal.asReadonly();
@@ -76,6 +79,13 @@ export class ComposePageService {
   });
 
   public readonly recipientCount = computed(() => this.selectedIdsSignal().size);
+
+  public readonly hasTemplates = computed(() => this.templatesSignal().length > 0);
+  public readonly hasSignatures = computed(() => this.signaturesSignal().length > 0);
+
+  public readonly selectedRecipientContacts = computed(() =>
+    this.selectedContacts().filter((contact) => contact.email),
+  );
 
   /** Selected contacts with no email address cannot be sent to. */
   public readonly unreachableCount = computed(
@@ -120,9 +130,7 @@ export class ComposePageService {
       this.historySignal.set(history.items);
 
       const defaultSignature = signatures.items.find((signature) => signature.isDefault);
-      if (defaultSignature) {
-        this.signatureIdSignal.set(defaultSignature.id);
-      }
+      this.signatureIdSignal.set(defaultSignature?.id ?? null);
     } catch (error) {
       this.errorSignal.set(this.messageFor(error, 'The composer could not be loaded'));
     } finally {
@@ -186,6 +194,70 @@ export class ComposePageService {
 
   public clearRecipients(): void {
     this.selectedIdsSignal.set(new Set());
+    this.recipientDraftSignal.set('');
+  }
+
+  public setRecipientDraft(value: string): void {
+    this.recipientDraftSignal.set(value);
+  }
+
+  public removeRecipient(contactId: string): void {
+    const next = new Set(this.selectedIdsSignal());
+    next.delete(contactId);
+    this.selectedIdsSignal.set(next);
+  }
+
+  public async addRecipientEmails(rawValue: string): Promise<void> {
+    const emails = this.parseRecipientEmails(rawValue);
+
+    if (emails.length === 0) {
+      this.notifications.error('Enter at least one valid recipient email address');
+      return;
+    }
+
+    const next = new Set(this.selectedIdsSignal());
+
+    for (const email of emails) {
+      const existing = this.contactsSignal().find(
+        (contact) => contact.email?.toLowerCase() === email,
+      );
+
+      if (existing) {
+        next.add(existing.id);
+        continue;
+      }
+
+      try {
+        const created = await firstValueFrom(
+          this.contactService.create(this.recipientPayloadFor(email)),
+        );
+        this.contactsSignal.set([created, ...this.contactsSignal()]);
+        next.add(created.id);
+      } catch (error) {
+        const duplicateId =
+          error instanceof AppError ? (error.details?.['conflictingContactId'] as string | undefined) : undefined;
+
+        if (duplicateId) {
+          const duplicate = await firstValueFrom(this.contactService.getById(duplicateId));
+          this.contactsSignal.update((current) =>
+            current.some((contact) => contact.id === duplicate.id)
+              ? current
+              : [duplicate, ...current],
+          );
+          next.add(duplicate.id);
+          continue;
+        }
+
+        this.notifications.error(this.messageFor(error, `The recipient ${email} could not be added`));
+      }
+    }
+
+    this.selectedIdsSignal.set(next);
+    this.recipientDraftSignal.set('');
+
+    if (next.size > 0) {
+      void this.refreshPreview();
+    }
   }
 
   public setSubject(value: string): void {
@@ -338,5 +410,43 @@ export class ComposePageService {
 
   private messageFor(error: unknown, fallback: string): string {
     return error instanceof AppError ? error.message : fallback;
+  }
+
+  private parseRecipientEmails(rawValue: string): string[] {
+    const unique = new Set<string>();
+
+    for (const entry of rawValue.split(/[\n,;]/)) {
+      const email = entry.trim().toLowerCase();
+      if (this.isValidEmail(email)) {
+        unique.add(email);
+      }
+    }
+
+    return [...unique];
+  }
+
+  private isValidEmail(value: string): boolean {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+  }
+
+  private recipientPayloadFor(email: string): ContactPayload {
+    return {
+      name: this.nameFromEmail(email),
+      phone: null,
+      email,
+      company: null,
+      designation: null,
+      location: null,
+      tags: [],
+      notes: null,
+    };
+  }
+
+  private nameFromEmail(email: string): string {
+    const localPart = email.split('@')[0] ?? email;
+    return localPart
+      .replace(/[._-]+/g, ' ')
+      .replace(/\b\w/g, (character) => character.toUpperCase())
+      .trim() || email;
   }
 }

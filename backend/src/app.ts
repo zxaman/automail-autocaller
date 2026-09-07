@@ -77,15 +77,16 @@ export function createApp(): express.Express {
   app.use(cookieParser());
   app.use('/api/v1', globalRateLimiter);
 
-  const authModule = createAuthModule();
+  // The email module reuses the account module's service instance so both
+  // share one cipher and one view of connected accounts.
+  const emailAccountModule = createEmailAccountModule();
+
+  const authModule = createAuthModule(emailAccountModule.accountService);
 
   app.use('/api/v1', createAuthRouter(authModule));
   app.use('/api/v1', createContactRouter(createContactModule(), authModule.authenticate));
   app.use('/api/v1', createDashboardRouter(createDashboardModule(), authModule.authenticate));
   app.use('/api/v1', createImportRouter(createImportModule(), authModule.authenticate));
-  // The email module reuses the account module's service instance so both
-  // share one cipher and one view of connected accounts.
-  const emailAccountModule = createEmailAccountModule();
 
   app.use(
     '/api/v1',
