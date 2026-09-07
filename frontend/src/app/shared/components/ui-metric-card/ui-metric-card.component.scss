@@ -1,0 +1,64 @@
+@use 'mixins' as *;
+
+:host {
+  display: block;
+}
+
+.metric-card {
+  @include card-surface;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-5);
+  height: 100%;
+}
+
+.metric-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.metric-card__label {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-body-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+.metric-card__icon {
+  display: inline-flex;
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--color-primary-050);
+  color: var(--color-primary-700);
+}
+
+.metric-card__value {
+  @include tabular-numbers;
+  font-size: var(--font-size-metric);
+  font-weight: var(--font-weight-bold);
+  line-height: 2.125rem;
+}
+
+.metric-card__context {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-caption);
+}
+
+.metric-card__trend {
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-medium);
+}
+
+.metric-card__trend--up {
+  color: var(--color-success);
+}
+
+.metric-card__trend--down {
+  color: var(--color-error);
+}
+
+.metric-card__trend--flat {
+  color: var(--color-text-muted);
+}

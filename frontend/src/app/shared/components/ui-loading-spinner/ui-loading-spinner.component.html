@@ -1,0 +1,4 @@
+<div class="spinner" [class.spinner--centered]="centered()" role="status" aria-live="polite">
+  <span class="spinner__circle" [class]="'spinner__circle--' + size()" aria-hidden="true"></span>
+  <span class="visually-hidden">{{ label() }}</span>
+</div>

@@ -1,0 +1,11 @@
+<div class="skeleton" role="status" aria-live="polite" aria-busy="true">
+  @for (row of rowList; track row) {
+    <span
+      class="skeleton__row"
+      [style.width]="width()"
+      [style.height]="height()"
+      [style.borderRadius]="radius()"
+    ></span>
+  }
+  <span class="visually-hidden">Loading</span>
+</div>

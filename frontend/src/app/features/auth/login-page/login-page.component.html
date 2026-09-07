@@ -1,0 +1,51 @@
+<div class="login">
+  <section class="login__panel">
+    @if (isSubmitting()) {
+      <mat-progress-bar class="login__progress" mode="indeterminate" />
+    }
+
+    <div class="login__brand">
+      <img src="assets/logo.svg" alt="" width="44" height="44" />
+      <div>
+        <h1 class="login__title">AutoCall &amp; AutoMail</h1>
+        <p class="login__subtitle">
+          One workspace to import contacts, call them, email them, and track every interaction.
+        </p>
+      </div>
+    </div>
+
+    @if (reason() === 'session-expired') {
+      <p class="login__notice" role="status">Your session expired. Please sign in again.</p>
+    }
+
+    @if (errorMessage()) {
+      <p class="login__error" role="alert">{{ errorMessage() }}</p>
+    }
+
+    <div class="login__google">
+      <div #googleButton class="login__google-button" [class.is-hidden]="isUnavailable()"></div>
+
+      @if (isInitializing()) {
+        <app-ui-loading-spinner label="Loading Google sign-in" size="sm" [centered]="false" />
+      }
+
+      @if (isSubmitting()) {
+        <p class="login__status" role="status">Verifying your Google account…</p>
+      }
+    </div>
+
+    <p class="login__legal">
+      We never ask for your Gmail password. Gmail sending is connected separately with a Google
+      App Password that is verified and encrypted on the server.
+    </p>
+  </section>
+
+  <aside class="login__aside" aria-hidden="true">
+    <ul class="login__points">
+      <li>Import contacts from Excel or CSV with column mapping.</li>
+      <li>Call from inside the application through a telephony provider.</li>
+      <li>Send personalized email with templates, signatures, and saved attachments.</li>
+      <li>See every call and email on one communication timeline.</li>
+    </ul>
+  </aside>
+</div>

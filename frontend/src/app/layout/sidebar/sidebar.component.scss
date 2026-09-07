@@ -1,0 +1,121 @@
+@use 'mixins' as *;
+
+:host {
+  display: contents;
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  width: var(--layout-sidebar-width);
+  height: 100dvh;
+  padding: var(--space-5) var(--space-4);
+  background: var(--color-surface);
+  border-right: 1px solid var(--color-border);
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sidebar);
+  transition: width var(--motion-base) var(--motion-easing);
+}
+
+.sidebar--collapsed {
+  width: 80px;
+  align-items: center;
+}
+
+.sidebar__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0 var(--space-2);
+}
+
+.sidebar__brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.sidebar__brand-name {
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+}
+
+.sidebar__brand-sub {
+  font-size: var(--font-size-caption);
+  color: var(--color-text-muted);
+}
+
+.sidebar__nav {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.sidebar__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.sidebar__link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-medium);
+  text-decoration: none;
+  transition: background var(--motion-fast) var(--motion-easing);
+
+  &:hover {
+    background: var(--color-surface-subtle);
+    color: var(--color-text-primary);
+    text-decoration: none;
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+
+  &.is-active {
+    background: var(--color-primary-100);
+    color: var(--color-primary-700);
+    font-weight: var(--font-weight-semibold);
+    box-shadow: inset 3px 0 0 var(--color-primary-700);
+  }
+}
+
+.sidebar__footer {
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-primary-050);
+}
+
+.sidebar__footer-title {
+  font-size: var(--font-size-body-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-primary-900);
+}
+
+.sidebar__footer-text {
+  margin-top: var(--space-1);
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+}
+
+@include tablet-down {
+  .sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    transform: translateX(-100%);
+    box-shadow: var(--shadow-md);
+    transition: transform var(--motion-base) var(--motion-easing);
+  }
+
+  .sidebar.is-open {
+    transform: translateX(0);
+  }
+}

@@ -1,0 +1,79 @@
+.activity-chart {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+
+  &--loading {
+    opacity: 0.5;
+  }
+}
+
+.activity-chart__legend {
+  display: flex;
+  gap: var(--space-4);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.activity-chart__legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.activity-chart__swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+
+  &--calls {
+    background: var(--color-primary);
+  }
+
+  &--emails {
+    background: var(--color-accent, #6f7ff2);
+  }
+}
+
+.activity-chart__svg {
+  width: 100%;
+  height: 220px;
+  overflow: visible;
+}
+
+.activity-chart__grid {
+  stroke: var(--color-border);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.activity-chart__bar {
+  transition: opacity var(--transition-fast, 120ms) ease;
+
+  &--calls {
+    fill: var(--color-primary);
+  }
+
+  &--emails {
+    fill: var(--color-accent, #6f7ff2);
+  }
+}
+
+.activity-chart__group:hover .activity-chart__bar {
+  opacity: 0.75;
+}
+
+.activity-chart__tick {
+  fill: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.activity-chart__empty {
+  position: absolute;
+  inset-block-end: 45%;
+  inset-inline: 0;
+  text-align: center;
+  font-size: var(--font-size-sm);
+}

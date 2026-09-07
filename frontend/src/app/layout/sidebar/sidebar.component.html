@@ -1,0 +1,46 @@
+<aside
+  class="sidebar"
+  [class.sidebar--collapsed]="collapsed()"
+  [class.sidebar--drawer]="!collapsed() && showDrawer()"
+  [class.is-open]="showDrawer()"
+>
+  <div class="sidebar__brand">
+    <img class="sidebar__logo" src="assets/logo.svg" alt="" width="32" height="32" />
+    @if (!collapsed()) {
+      <span class="sidebar__brand-text">
+        <span class="sidebar__brand-name">AutoCall</span>
+        <span class="sidebar__brand-sub">&amp; AutoMail</span>
+      </span>
+    }
+  </div>
+
+  <nav class="sidebar__nav" aria-label="Primary">
+    <ul class="sidebar__list">
+      @for (item of items(); track item.id) {
+        <li>
+          <a
+            class="sidebar__link"
+            [routerLink]="item.route"
+            routerLinkActive="is-active"
+            [attr.title]="collapsed() ? item.label : null"
+            (click)="close()"
+          >
+            <app-ui-icon [name]="item.icon" size="md" />
+            @if (!collapsed()) {
+              <span class="sidebar__link-label">{{ item.label }}</span>
+            }
+          </a>
+        </li>
+      }
+    </ul>
+  </nav>
+
+  @if (!collapsed()) {
+    <div class="sidebar__footer">
+      <p class="sidebar__footer-title">One workspace</p>
+      <p class="sidebar__footer-text">
+        Import contacts, call them, email them, and track every interaction.
+      </p>
+    </div>
+  }
+</aside>

@@ -1,0 +1,58 @@
+<section class="email-accounts">
+  @if (errorMessage()) {
+    <app-ui-error-state
+      title="Accounts unavailable"
+      [message]="errorMessage()!"
+      (retry)="reload()"
+    />
+  }
+
+  <app-ui-card
+    title="Gmail accounts"
+    subtitle="Accounts this workspace can send email from"
+  >
+    @if (isLoading() && !hasAccounts()) {
+      <app-ui-loading-spinner />
+    } @else if (hasAccounts()) {
+      <ul class="email-accounts__list">
+        @for (account of accounts(); track account.id) {
+          <li>
+            <app-email-account-card
+              [account]="account"
+              [isBusy]="busyAccountId() === account.id"
+              (verifyRequested)="verify($event)"
+              (testRequested)="sendTest($event)"
+              (defaultRequested)="setDefault($event)"
+              (disconnectRequested)="disconnect($event)"
+            />
+          </li>
+        }
+      </ul>
+    } @else if (!isFormOpen()) {
+      <app-ui-empty-state
+        icon="emails"
+        title="No Gmail account connected"
+        description="Connect a Gmail account with an App Password to start sending email."
+      />
+    }
+
+    @if (!isFormOpen()) {
+      <div class="email-accounts__actions">
+        <button type="button" class="email-accounts__connect" (click)="openForm()">
+          Connect a Gmail account
+        </button>
+      </div>
+    }
+  </app-ui-card>
+
+  @if (isFormOpen()) {
+    <app-ui-card title="Connect a Gmail account">
+      <app-connect-gmail-form
+        [isSubmitting]="isConnecting()"
+        [errorMessage]="connectError()"
+        (submitted)="connect($event)"
+        (cancelled)="closeForm()"
+      />
+    </app-ui-card>
+  }
+</section>

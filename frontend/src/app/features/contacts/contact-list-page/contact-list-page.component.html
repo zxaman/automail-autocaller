@@ -1,0 +1,88 @@
+<div class="app-page">
+  <app-ui-page-header
+    title="Contacts"
+    description="Everyone your workspace can call or email."
+  >
+    <div pageActions>
+      <app-ui-button variant="secondary" size="sm" icon="imports" routerLink="/imports">
+        Import
+      </app-ui-button>
+      <app-ui-button variant="primary" size="sm" icon="plus" (pressed)="onAdd()">
+        Add contact
+      </app-ui-button>
+    </div>
+  </app-ui-page-header>
+
+  <app-contact-filters
+    [query]="query()"
+    [tags]="tags()"
+    [hasActiveFilters]="hasActiveFilters()"
+    [resultCount]="totalItems()"
+    (searchChanged)="onSearch($event)"
+    (tagChanged)="onTagChange($event)"
+    (channelChanged)="onChannelChange($event)"
+    (sortChanged)="onSortChange($event)"
+    (filtersReset)="onResetFilters()"
+  />
+
+  @if (hasError()) {
+    <app-ui-error-state
+      title="Contacts unavailable"
+      [message]="errorMessage() ?? 'The contacts could not be loaded.'"
+      (retry)="reload()"
+    />
+  } @else {
+    <app-ui-card [padded]="false">
+      @if (isLoading() && contacts().length === 0) {
+        <div class="contact-list__skeletons">
+          @for (row of skeletonRows; track row) {
+            <app-ui-skeleton height="48px" />
+          }
+        </div>
+      } @else if (isEmpty()) {
+        @if (hasActiveFilters()) {
+          <app-ui-empty-state
+            icon="search"
+            title="No contacts match these filters"
+            description="Try a different search term, or clear the filters to see everyone."
+            actionLabel="Clear filters"
+            (actionTriggered)="onResetFilters()"
+          />
+        } @else {
+          <app-ui-empty-state
+            icon="contacts"
+            title="No contacts yet"
+            description="Add your first contact, or import a spreadsheet to bring in your whole list."
+            actionLabel="Add contact"
+            (actionTriggered)="onAdd()"
+          />
+        }
+      } @else {
+        <div class="contact-list" [class.is-refreshing]="isLoading()">
+          @for (contact of contacts(); track contact.id) {
+            <app-contact-card
+              [contact]="contact"
+              (callRequested)="onCall($event)"
+              (emailRequested)="onEmail($event)"
+              (editRequested)="onEdit($event)"
+              (deleteRequested)="onDelete($event)"
+            />
+          }
+        </div>
+
+        @if (pagination(); as page) {
+          <mat-paginator
+            class="contact-list__paginator"
+            [length]="page.totalItems"
+            [pageSize]="page.pageSize"
+            [pageIndex]="page.page - 1"
+            [pageSizeOptions]="[10, 25, 50, 100]"
+            showFirstLastButtons
+            aria-label="Select contacts page"
+            (page)="onPageChange($event)"
+          />
+        }
+      }
+    </app-ui-card>
+  }
+</div>

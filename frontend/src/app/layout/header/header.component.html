@@ -1,0 +1,59 @@
+<header class="header">
+  <div class="header__left">
+    <button
+      type="button"
+      class="header__menu-button"
+      aria-label="Toggle navigation"
+      matTooltip="Toggle navigation"
+      (click)="toggleSidebar()"
+    >
+      <app-ui-icon name="menu" size="md" />
+    </button>
+    <div class="header__context">
+      <p class="header__eyebrow">Workspace</p>
+      <h2 class="header__title">{{ pageTitle() }}</h2>
+    </div>
+  </div>
+
+  <div class="header__right">
+    @if (!isMobile()) {
+      <app-ui-button variant="secondary" size="sm" icon="imports" routerLink="/imports">
+        Import contacts
+      </app-ui-button>
+      <app-ui-button variant="primary" size="sm" icon="emails" routerLink="/emails">
+        Compose email
+      </app-ui-button>
+    }
+
+    <button
+      type="button"
+      class="header__account-button"
+      [matMenuTriggerFor]="accountMenu"
+      aria-label="Account menu"
+    >
+      <app-ui-avatar
+        [name]="user()?.name ?? 'Guest'"
+        [imageUrl]="user()?.profileImageUrl ?? null"
+        size="sm"
+      />
+      @if (!isMobile()) {
+        <span class="header__account-name">{{ user()?.name ?? 'Guest' }}</span>
+      }
+    </button>
+
+    <mat-menu #accountMenu="matMenu" xPosition="before">
+      <div class="header__menu-identity">
+        <p class="header__menu-name">{{ user()?.name ?? 'Guest' }}</p>
+        <p class="header__menu-email">{{ user()?.email ?? 'Not signed in' }}</p>
+      </div>
+      <a mat-menu-item routerLink="/settings">
+        <app-ui-icon name="settings" size="sm" />
+        <span class="header__menu-label">Settings</span>
+      </a>
+      <button mat-menu-item type="button" (click)="logout()">
+        <app-ui-icon name="logout" size="sm" />
+        <span class="header__menu-label">Sign out</span>
+      </button>
+    </mat-menu>
+  </div>
+</header>

@@ -1,0 +1,121 @@
+@use 'mixins' as *;
+
+:host {
+  display: inline-flex;
+}
+
+.ui-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  transition:
+    background var(--motion-fast) var(--motion-easing),
+    border-color var(--motion-fast) var(--motion-easing),
+    color var(--motion-fast) var(--motion-easing);
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+}
+
+.ui-button--sm {
+  min-height: 32px;
+  padding: 0 var(--space-3);
+  font-size: var(--font-size-body-sm);
+}
+
+.ui-button--md {
+  min-height: 40px;
+  padding: 0 var(--space-4);
+  font-size: var(--font-size-body);
+}
+
+.ui-button--lg {
+  min-height: 48px;
+  padding: 0 var(--space-6);
+  font-size: var(--font-size-body-lg);
+}
+
+.ui-button--block {
+  width: 100%;
+}
+
+.ui-button--primary {
+  background: var(--color-primary-700);
+  color: #fff;
+
+  &:hover:not(:disabled) {
+    background: var(--color-primary-600);
+  }
+
+  &:active:not(:disabled) {
+    background: var(--color-primary-900);
+  }
+}
+
+.ui-button--secondary {
+  background: var(--color-surface);
+  border-color: var(--color-border-strong);
+  color: var(--color-text-primary);
+
+  &:hover:not(:disabled) {
+    background: var(--color-surface-subtle);
+  }
+}
+
+.ui-button--ghost {
+  background: transparent;
+  color: var(--color-text-secondary);
+
+  &:hover:not(:disabled) {
+    background: var(--color-primary-050);
+    color: var(--color-primary-700);
+  }
+}
+
+.ui-button--accent {
+  background: var(--color-accent-600);
+  color: #fff;
+
+  &:hover:not(:disabled) {
+    background: var(--color-accent-700);
+  }
+}
+
+.ui-button--destructive {
+  background: var(--color-error);
+  color: #fff;
+
+  &:hover:not(:disabled) {
+    filter: brightness(0.94);
+  }
+}
+
+.ui-button__spinner {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  animation: ui-button-spin 700ms linear infinite;
+}
+
+.ui-button__label:empty {
+  display: none;
+}
+
+@keyframes ui-button-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

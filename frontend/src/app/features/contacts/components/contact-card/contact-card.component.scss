@@ -1,0 +1,158 @@
+@use 'mixins' as *;
+
+:host {
+  display: block;
+}
+
+.contact-card {
+  display: grid;
+  grid-template-columns: minmax(0, 2.2fr) minmax(0, 2fr) minmax(0, 1.4fr) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+  transition: background var(--motion-fast) var(--motion-easing);
+
+  &:hover {
+    background: var(--color-surface-subtle);
+  }
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.contact-card__identity {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: none;
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+}
+
+.contact-card__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.contact-card__name {
+  font-weight: var(--font-weight-semibold);
+  @include truncate;
+}
+
+.contact-card__meta {
+  font-size: var(--font-size-body-sm);
+  color: var(--color-text-secondary);
+  @include truncate;
+}
+
+.contact-card__channels {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  font-size: var(--font-size-body-sm);
+  color: var(--color-text-secondary);
+}
+
+.contact-card__channel {
+  @include truncate;
+}
+
+.contact-card__channel--email {
+  color: var(--color-text-muted);
+}
+
+.contact-card__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.contact-card__tag {
+  padding: 1px var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--color-primary-050);
+  color: var(--color-primary-700);
+  font-size: var(--font-size-caption);
+}
+
+.contact-card__last {
+  font-size: var(--font-size-caption);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.contact-card__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.contact-card__action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: var(--color-surface-subtle);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+/* Calling is the primary action; email uses the complementary accent. */
+.contact-card__action--call:not(:disabled) {
+  border-color: var(--color-primary-100);
+  background: var(--color-primary-050);
+  color: var(--color-primary-700);
+}
+
+.contact-card__action--email:not(:disabled) {
+  border-color: var(--color-accent-100);
+  background: var(--color-accent-050);
+  color: var(--color-accent-700);
+}
+
+@media (max-width: 1100px) {
+  .contact-card {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1.6fr) auto;
+  }
+
+  .contact-card__tags,
+  .contact-card__last {
+    display: none;
+  }
+}
+
+@include mobile {
+  .contact-card {
+    grid-template-columns: 1fr;
+    gap: var(--space-2);
+    padding: var(--space-4);
+  }
+
+  .contact-card__actions {
+    justify-content: flex-start;
+  }
+}

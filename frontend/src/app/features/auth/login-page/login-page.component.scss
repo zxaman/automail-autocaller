@@ -1,0 +1,121 @@
+@use 'mixins' as *;
+
+.login {
+  display: grid;
+  grid-template-columns: minmax(0, 460px) minmax(0, 1fr);
+  min-height: 100dvh;
+  background: var(--color-page-bg);
+}
+
+.login__panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  justify-content: center;
+  padding: var(--space-10) var(--space-8);
+  background: var(--color-surface);
+  border-right: 1px solid var(--color-border);
+}
+
+.login__brand {
+  display: flex;
+  gap: var(--space-4);
+  align-items: flex-start;
+}
+
+.login__title {
+  font-size: var(--font-size-page-title);
+  line-height: var(--line-height-page-title);
+  font-weight: var(--font-weight-bold);
+}
+
+.login__subtitle {
+  margin-top: var(--space-2);
+  color: var(--color-text-secondary);
+}
+
+.login__notice {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-info-bg);
+  color: var(--color-info);
+}
+
+.login__error {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-error-bg);
+  color: var(--color-error);
+}
+
+.login__progress {
+  position: absolute;
+  inset: 0 0 auto 0;
+}
+
+.login__google {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  align-items: flex-start;
+  min-height: 44px;
+}
+
+.login__google-button.is-hidden {
+  display: none;
+}
+
+.login__status {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-body-sm);
+}
+
+.login__legal {
+  font-size: var(--font-size-caption);
+  color: var(--color-text-muted);
+}
+
+.login__aside {
+  display: flex;
+  align-items: center;
+  padding: var(--space-12);
+  background:
+    radial-gradient(circle at 20% 20%, rgba(82, 105, 232, 0.18), transparent 55%),
+    linear-gradient(140deg, var(--color-primary-900), var(--color-primary-700));
+  color: #fff;
+}
+
+.login__points {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  font-size: var(--font-size-body-lg);
+  max-width: 44ch;
+}
+
+.login__points li {
+  padding-left: var(--space-5);
+  position: relative;
+}
+
+.login__points li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.55em;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-accent-600);
+}
+
+@include tablet-down {
+  .login {
+    grid-template-columns: 1fr;
+  }
+
+  .login__aside {
+    display: none;
+  }
+}

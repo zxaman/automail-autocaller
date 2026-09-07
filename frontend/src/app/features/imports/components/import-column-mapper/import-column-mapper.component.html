@@ -1,0 +1,71 @@
+<div class="column-mapper">
+  <table class="column-mapper__table">
+    <caption class="visually-hidden">
+      Map each spreadsheet column to a contact field
+    </caption>
+    <thead>
+      <tr>
+        <th scope="col">Column in your file</th>
+        <th scope="col">Sample values</th>
+        <th scope="col">Import as</th>
+        <th scope="col">Why</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (row of rows(); track row.columnIndex) {
+        <tr
+          class="column-mapper__row"
+          [class.column-mapper__row--attention]="needsAttention(row)"
+        >
+          <td>
+            <span class="column-mapper__label">{{ row.rawLabel }}</span>
+            <span class="column-mapper__confidence" [attr.data-confidence]="row.confidence">
+              {{ confidenceLabel(row) }}
+            </span>
+          </td>
+
+          <td class="column-mapper__samples">
+            @if (row.sampleValues.length) {
+              <ul>
+                @for (sample of row.sampleValues.slice(0, 3); track sample) {
+                  <li class="text-muted">{{ sample }}</li>
+                }
+              </ul>
+            } @else {
+              <span class="text-muted">Empty column</span>
+            }
+          </td>
+
+          <td>
+            <select
+              class="column-mapper__select"
+              [value]="row.field ?? ''"
+              [disabled]="disabled()"
+              [attr.aria-label]="'Import ' + row.rawLabel + ' as'"
+              (change)="onFieldChange(row.columnIndex, $any($event.target).value)"
+            >
+              <option value="">Choose a field…</option>
+              @for (option of fieldOptions; track option.value) {
+                <option [value]="option.value">{{ option.label }}</option>
+              }
+            </select>
+          </td>
+
+          <td class="column-mapper__reason">
+            <span class="text-secondary">{{ row.reason }}</span>
+            @if (needsAttention(row)) {
+              <button
+                type="button"
+                class="column-mapper__confirm"
+                [disabled]="disabled()"
+                (click)="suggestionConfirmed.emit(row.columnIndex)"
+              >
+                Looks right
+              </button>
+            }
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>

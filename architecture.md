@@ -135,18 +135,24 @@ Generic headers such as `Number`, `User`, or `Details` must be treated as ambigu
 
 ## 6. Call Flow
 
+Revised in Phase 9. India prohibits domestic VoIP-to-PSTN dial-out, so the in-app
+WebRTC audio path below is not lawful for Indian numbers and has been replaced by
+provider-side PSTN bridging. See `telephony-evaluation.md`.
+
 ```text
 User clicks Call
         ↓
-Frontend requests call session from backend
+Frontend requests a call from the backend
         ↓
 Backend verifies contact and workspace access
         ↓
-Backend creates provider call/session
+Backend asks the provider to bridge two PSTN legs
         ↓
-Frontend receives short-lived provider session information
+Provider dials the agent's handset (leg 1)
         ↓
-Web SDK or native Capacitor voice plugin connects audio
+On answer, provider dials the contact (leg 2) and bridges them
+        ↓
+Voice travels over the PSTN; the app carries no audio
         ↓
 Provider sends signed status webhooks
         ↓
@@ -159,7 +165,22 @@ Provider confirms final status and duration
 Call appears in history and contact timeline
 ```
 
-The first provider candidate is Twilio Voice. Telnyx or Vonage can be selected behind the same provider interface if country coverage or regulatory requirements make them more suitable.
+**Provider selection (Phase 9, revised in Phase 10).** Calling is **domestic only**: the
+agent and the contact are always in the same country, and cross-border calling is out of
+scope. Each supported country is therefore served by an operator licensed *in that country*,
+resolved per call from the destination dial code.
+
+For India that operator is **Exotel**, which holds a Unified Licence (VNO) and offers
+compliant PSTN bridging over plain REST. Twilio Voice cannot place domestic calls to Indian
+numbers — its own India guidance restricts outbound calls to India to international
+originating numbers — and since we never dial across a border, no international CPaaS is
+needed at all. A destination country with no licensed operator configured is **refused**
+(`CALL_DESTINATION_UNSUPPORTED`) rather than routed through a provider that cannot lawfully
+complete the call.
+
+Because the voice path is PSTN, mute, hold, DTMF, and audio routing belong to the agent's
+handset and are **not** in-app controls. The provider adapter declares this through
+`TelephonyCapabilities`, and the UI hides controls the provider cannot actually perform.
 
 The application must not use `tel:` as the production calling architecture.
 
@@ -306,14 +327,12 @@ backend/src/
 │   ├── google/
 │   ├── gmail/
 │   ├── telephony/
-│   │   ├── telephony.provider.ts
-│   │   ├── twilio/
-│   │   ├── telnyx/
-│   │   └── vonage/
+│   │   ├── telephony-provider.ts
+│   │   ├── call-routing.ts
+│   │   └── exotel-provider.ts
 │   └── object-storage/
 ├── workers/
 │   ├── email.worker.ts
-│   ├── recording.worker.ts
 │   └── cleanup.worker.ts
 └── shared/
     ├── errors/

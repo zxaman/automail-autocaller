@@ -1,0 +1,40 @@
+@use '@angular/material' as mat;
+
+/**
+ * Angular Material is used for complex interaction primitives (menus, dialogs,
+ * tooltips, form fields) where re-implementing accessible behaviour would be
+ * wasteful and error-prone. Simple presentational elements stay custom so the
+ * bundle and the visual language remain ours.
+ *
+ * The Material palette is bound to the product design tokens so both systems
+ * render the same brand colours.
+ */
+html {
+  @include mat.theme(
+    (
+      color: (
+        primary: mat.$azure-palette,
+        tertiary: mat.$cyan-palette,
+        theme-type: light,
+      ),
+      typography: (
+        plain-family: 'Inter, ui-sans-serif, system-ui, sans-serif',
+        brand-family: 'Inter, ui-sans-serif, system-ui, sans-serif',
+      ),
+      density: 0,
+    )
+  );
+
+  // Bind Material system colours to the product tokens.
+  --mat-sys-primary: var(--color-primary-700);
+  --mat-sys-on-primary: #ffffff;
+  --mat-sys-primary-container: var(--color-primary-100);
+  --mat-sys-on-primary-container: var(--color-primary-900);
+  --mat-sys-error: var(--color-error);
+  --mat-sys-surface: var(--color-surface);
+  --mat-sys-on-surface: var(--color-text-primary);
+  --mat-sys-on-surface-variant: var(--color-text-secondary);
+  --mat-sys-outline-variant: var(--color-border);
+  --mat-sys-corner-medium: var(--radius-md);
+  --mat-sys-corner-large: var(--radius-lg);
+}

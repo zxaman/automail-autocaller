@@ -1,0 +1,36 @@
+@if (entries().length === 0) {
+  <app-ui-empty-state
+    icon="contacts"
+    title="No contact activity yet"
+    description="Once you call or email contacts in this period, the most contacted appear here."
+  />
+} @else {
+  <ol class="leaderboard">
+    @for (entry of entries(); track entry.contactId; let index = $index) {
+      <li class="leaderboard__row">
+        <span class="leaderboard__rank">{{ index + 1 }}</span>
+
+        <div class="leaderboard__main">
+          <a class="leaderboard__name" [routerLink]="['/contacts', entry.contactId]">
+            {{ entry.contactName }}
+          </a>
+          @if (entry.company) {
+            <span class="leaderboard__company">{{ entry.company }}</span>
+          }
+        </div>
+
+        <div class="leaderboard__counts">
+          <span class="leaderboard__count">{{ entry.callCount }} calls</span>
+          <span class="leaderboard__count">{{ entry.emailCount }} emails</span>
+          @if (entry.lastInteractionAt) {
+            <span class="leaderboard__last">
+              {{ entry.lastInteractionAt | appRelativeTime }}
+            </span>
+          }
+        </div>
+
+        <span class="leaderboard__total">{{ entry.totalInteractions }}</span>
+      </li>
+    }
+  </ol>
+}

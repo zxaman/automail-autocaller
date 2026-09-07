@@ -1,0 +1,46 @@
+@use 'mixins' as *;
+
+.app-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--layout-grid-gap);
+  width: 100%;
+  max-width: var(--layout-content-max-width);
+  margin: 0 auto;
+}
+
+.app-page__title {
+  font-size: var(--font-size-page-title);
+  line-height: var(--line-height-page-title);
+  font-weight: var(--font-weight-bold);
+}
+
+.app-page__subtitle {
+  color: var(--color-text-secondary);
+}
+
+.app-card {
+  @include card-surface;
+  padding: var(--space-6);
+}
+
+.app-grid {
+  display: grid;
+  gap: var(--layout-grid-gap);
+}
+
+.text-muted {
+  color: var(--color-text-muted);
+}
+
+.text-secondary {
+  color: var(--color-text-secondary);
+}
+
+.tabular {
+  @include tabular-numbers;
+}
+
+.visually-hidden {
+  @include visually-hidden;
+}

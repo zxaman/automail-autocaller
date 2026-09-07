@@ -1,0 +1,8 @@
+<span class="ui-avatar" [class]="'ui-avatar--' + size()" [attr.title]="name()">
+  @if (showImage()) {
+    <img class="ui-avatar__image" [src]="imageUrl()" [alt]="name()" (error)="onImageError()" />
+  } @else {
+    <span class="ui-avatar__initials" aria-hidden="true">{{ initials() }}</span>
+    <span class="visually-hidden">{{ name() }}</span>
+  }
+</span>

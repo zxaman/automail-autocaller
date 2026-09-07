@@ -1,0 +1,30 @@
+@if (items().length === 0) {
+  <p class="breakdown__empty">{{ emptyMessage() }}</p>
+} @else {
+  <div class="breakdown">
+    <div class="breakdown__track" role="img" aria-label="Status breakdown">
+      @for (item of items(); track item.status) {
+        <span
+          class="breakdown__segment breakdown__segment--{{ toneFor(item.status) }}"
+          [style.width.%]="item.percent"
+          [attr.title]="labelFor(item.status) + ': ' + item.count"
+        ></span>
+      }
+    </div>
+
+    <ul class="breakdown__legend">
+      @for (item of items(); track item.status) {
+        <li class="breakdown__legend-item">
+          <span
+            class="breakdown__swatch breakdown__swatch--{{ toneFor(item.status) }}"
+            aria-hidden="true"
+          ></span>
+          <span class="breakdown__legend-label">{{ labelFor(item.status) }}</span>
+          <!-- Count and percentage both shown: a percentage alone hides
+               whether it came from 2 calls or 2000. -->
+          <span class="breakdown__legend-value">{{ item.count }} ({{ item.percent }}%)</span>
+        </li>
+      }
+    </ul>
+  </div>
+}

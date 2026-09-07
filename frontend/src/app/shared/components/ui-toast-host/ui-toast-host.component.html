@@ -1,0 +1,15 @@
+<div class="toast-host" aria-live="polite" aria-atomic="false">
+  @for (notification of notifications(); track notification.id) {
+    <div class="toast" [class]="'toast--' + notification.tone">
+      <span class="toast__message">{{ notification.message }}</span>
+      <button
+        type="button"
+        class="toast__dismiss"
+        aria-label="Dismiss notification"
+        (click)="dismiss(notification.id)"
+      >
+        <app-ui-icon name="close" size="sm" />
+      </button>
+    </div>
+  }
+</div>

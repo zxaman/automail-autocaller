@@ -4,6 +4,10 @@ node_modules/
 # Environment and secrets
 .env
 .env.*
+# Templates carry no values and must be committed; the broad rule above still
+# blocks every real environment file.
+!.env.example
+!.env.production.example
 !.env.example
 
 # Build output
@@ -35,3 +39,13 @@ uploads/
 www/
 android/
 ios/
+
+# Uploaded attachment bytes; these are user data, never source.
+backend/storage/
+
+# Capacitor native projects.
+# `npx cap add android|ios` generates these from capacitor.config.ts and the
+# web build. They are large, machine-specific, and regenerable, so they are
+# not committed. Any custom native change must be re-applied deliberately.
+frontend/android/
+frontend/ios/

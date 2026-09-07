@@ -1,0 +1,250 @@
+<section class="compose">
+  <header class="compose__header">
+    <div>
+      <h1 class="compose__title">Compose email</h1>
+      <p class="compose__subtitle">
+        Each recipient receives a separate, personalized message. Nobody sees who else was
+        contacted.
+      </p>
+    </div>
+
+    <app-ui-button
+      variant="primary"
+      icon="emails"
+      [disabled]="!state.canSend()"
+      [loading]="state.isSending()"
+      (pressed)="state.send()"
+    >
+      Send to {{ state.recipientCount() }} recipient(s)
+    </app-ui-button>
+  </header>
+
+  @if (state.isLoading()) {
+    <app-ui-loading-spinner label="Loading the composer" />
+  } @else if (state.errorMessage()) {
+    <app-ui-error-state [message]="state.errorMessage()!" (retry)="state.load()" />
+  } @else {
+    <div class="compose__grid">
+      <!-- Recipients -->
+      <app-ui-card title="Recipients" [subtitle]="state.recipientCount() + ' selected'">
+        <div class="compose__recipient-actions">
+          <app-ui-button variant="ghost" size="sm" (pressed)="state.selectAllReachable()">
+            Select all with email
+          </app-ui-button>
+          <app-ui-button variant="ghost" size="sm" (pressed)="state.clearRecipients()">
+            Clear
+          </app-ui-button>
+        </div>
+
+        @if (state.contacts().length === 0) {
+          <app-ui-empty-state
+            title="No contacts yet"
+            description="Import or add contacts before sending email."
+          />
+        } @else {
+          <ul class="compose__recipients">
+            @for (contact of state.contacts(); track contact.id) {
+              <li class="compose__recipient">
+                <label class="compose__recipient-label">
+                  <input
+                    type="checkbox"
+                    [checked]="state.selectedIds().has(contact.id)"
+                    [disabled]="!contact.email"
+                    (change)="state.toggleRecipient(contact.id)"
+                  />
+                  <span class="compose__recipient-name">{{ contact.name }}</span>
+                  <span class="compose__recipient-email">
+                    {{ contact.email ?? 'No email address' }}
+                  </span>
+                </label>
+              </li>
+            }
+          </ul>
+        }
+
+        @if (state.unreachableCount() > 0) {
+          <p class="compose__note">
+            {{ state.unreachableCount() }} selected contact(s) have no email address and will be
+            skipped.
+          </p>
+        }
+      </app-ui-card>
+
+      <!-- Draft -->
+      <app-ui-card title="Message">
+        <div class="compose__field">
+          <label class="compose__label" for="template">Template</label>
+          <select id="template" class="compose__select" (change)="onTemplateChange($event)">
+            <option value="">Start from scratch</option>
+            @for (template of state.templates(); track template.id) {
+              <option [value]="template.id">{{ template.name }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="compose__field">
+          <label class="compose__label" for="subject">Subject</label>
+          <input
+            id="subject"
+            class="compose__input"
+            type="text"
+            [value]="state.subject()"
+            (input)="onSubjectInput($event)"
+            placeholder="Quick question about {{ '{{ contact.company }}' }}"
+          />
+        </div>
+
+        <div class="compose__field">
+          <label class="compose__label" for="body">Body</label>
+          <textarea
+            id="body"
+            class="compose__textarea"
+            rows="12"
+            [value]="state.bodyHtml()"
+            (input)="onBodyInput($event)"
+            placeholder="Hi {{ '{{ contact.firstName }}' }},"
+          ></textarea>
+        </div>
+
+        <div class="compose__variables">
+          <span class="compose__label">Insert a variable</span>
+          <div class="compose__variable-list">
+            @for (variable of variables; track variable.token) {
+              <button
+                type="button"
+                class="compose__variable"
+                (click)="insertVariable(variable.token)"
+              >
+                {{ variable.label }}
+              </button>
+            }
+          </div>
+        </div>
+
+        <div class="compose__field">
+          <label class="compose__label" for="signature">Signature</label>
+          <select id="signature" class="compose__select" (change)="onSignatureChange($event)">
+            <option value="">No signature</option>
+            @for (signature of state.signatures(); track signature.id) {
+              <option [value]="signature.id" [selected]="signature.id === state.signatureId()">
+                {{ signature.name }}
+              </option>
+            }
+          </select>
+        </div>
+      </app-ui-card>
+
+      <!-- Attachments -->
+      <app-ui-card title="Attachments" subtitle="Reuse files across campaigns">
+        <label class="compose__upload">
+          <input type="file" (change)="onFileSelected($event)" [disabled]="state.isUploading()" />
+          <span>{{ state.isUploading() ? 'Uploading…' : 'Upload a file' }}</span>
+        </label>
+
+        @if (state.attachments().length === 0) {
+          <p class="compose__note">No saved attachments yet.</p>
+        } @else {
+          <ul class="compose__attachments">
+            @for (attachment of state.attachments(); track attachment.id) {
+              <li class="compose__attachment">
+                <label>
+                  <input
+                    type="checkbox"
+                    [checked]="state.selectedAttachmentIds().has(attachment.id)"
+                    (change)="state.toggleAttachment(attachment.id)"
+                  />
+                  <span>{{ attachment.fileName }}</span>
+                  <span class="compose__attachment-size">
+                    {{ formatSize(attachment.sizeBytes) }}
+                  </span>
+                </label>
+              </li>
+            }
+          </ul>
+        }
+      </app-ui-card>
+
+      <!-- Preview -->
+      <app-ui-card title="Preview" subtitle="Exactly what this recipient will receive">
+        <div class="compose__recipient-actions">
+          <app-ui-button
+            variant="secondary"
+            size="sm"
+            [loading]="state.isPreviewing()"
+            [disabled]="state.recipientCount() === 0"
+            (pressed)="state.refreshPreview()"
+          >
+            Refresh preview
+          </app-ui-button>
+          <app-ui-button
+            variant="ghost"
+            size="sm"
+            [disabled]="state.recipientCount() < 2"
+            (pressed)="state.showNextPreview()"
+          >
+            Next recipient
+          </app-ui-button>
+        </div>
+
+        @if (state.preview(); as preview) {
+          <dl class="compose__preview-meta">
+            <dt>To</dt>
+            <dd>{{ preview.recipientName }} &lt;{{ preview.recipientEmail }}&gt;</dd>
+            <dt>Subject</dt>
+            <dd>{{ preview.subject }}</dd>
+          </dl>
+
+          @if (preview.unresolvedVariables.length > 0) {
+            <p class="compose__warning">
+              This contact has no value for:
+              {{ preview.unresolvedVariables.join(', ') }}. Those spots will be blank.
+            </p>
+          }
+
+          <div class="compose__preview-body" [innerHTML]="trustedPreview(preview.bodyHtml)"></div>
+        } @else {
+          <p class="compose__note">
+            Select a recipient and refresh to see the personalized message.
+          </p>
+        }
+      </app-ui-card>
+    </div>
+
+    <!-- History -->
+    <app-ui-card title="Recent emails" subtitle="One row per recipient">
+      @if (state.history().length === 0) {
+        <app-ui-empty-state
+          icon="emails"
+          title="Nothing sent yet"
+          description="Queued and sent messages appear here with their delivery status."
+        />
+      } @else {
+        <ul class="compose__history">
+          @for (email of state.history(); track email.id) {
+            <li class="compose__history-row">
+              <div class="compose__history-main">
+                <span class="compose__history-subject">{{ email.subject }}</span>
+                <span class="compose__history-to">{{ email.recipientEmail }}</span>
+              </div>
+
+              <div class="compose__history-meta">
+                <app-ui-status-badge [status]="email.status" />
+                <span class="compose__history-time">{{ email.createdAt | appRelativeTime }}</span>
+
+                @if (email.status === 'failed') {
+                  <app-ui-button variant="ghost" size="sm" (pressed)="state.retry(email.id)">
+                    Retry
+                  </app-ui-button>
+                }
+              </div>
+
+              @if (email.failureReason) {
+                <p class="compose__history-error">{{ email.failureReason }}</p>
+              }
+            </li>
+          }
+        </ul>
+      }
+    </app-ui-card>
+  }
+</section>
