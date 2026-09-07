@@ -6,7 +6,6 @@ import { NavigationEnd, Router, RouterLink } from '@angular/router';
 import { filter, map, startWith, switchMap } from 'rxjs';
 
 import { AuthService } from '../../core/services/auth.service';
-import { GoogleIdentityService } from '../../core/services/google-identity.service';
 import { LayoutService } from '../../core/services/layout.service';
 import { NavigationService } from '../../core/services/navigation.service';
 import { NotificationService } from '../../core/services/notification.service';
@@ -41,7 +40,6 @@ export class HeaderComponent {
   private readonly navigationService = inject(NavigationService);
   private readonly notificationService = inject(NotificationService);
   private readonly confirmDialog = inject(ConfirmDialogService);
-  private readonly googleIdentity = inject(GoogleIdentityService);
 
   private readonly currentUrl = toSignal(
     this.router.events.pipe(
@@ -66,7 +64,7 @@ export class HeaderComponent {
     this.confirmDialog
       .confirm({
         title: 'Sign out?',
-        message: 'You will need to sign in with Google again to access this workspace.',
+        message: 'You will need to sign in again to access this workspace.',
         confirmLabel: 'Sign out',
       })
       .pipe(
@@ -74,8 +72,6 @@ export class HeaderComponent {
         switchMap(() => this.authService.logout()),
       )
       .subscribe(() => {
-        // Stops Google from silently re-authenticating on the next visit.
-        this.googleIdentity.disableAutoSelect();
         this.notificationService.info('You have been signed out.');
         void this.router.navigate(['/auth/login']);
       });

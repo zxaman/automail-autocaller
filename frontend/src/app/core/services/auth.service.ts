@@ -3,7 +3,7 @@ import { Observable, catchError, of, tap } from 'rxjs';
 
 import { API_ENDPOINTS } from '../config/api-endpoints.config';
 import { AppError } from '../models/api-error.model';
-import type { AuthenticatedUser } from '../models/user.model';
+import type { AuthenticatedUser, LoginRequest, RegisterRequest } from '../models/user.model';
 import { ApiClientService } from './api-client.service';
 
 export type AuthStatus = 'unknown' | 'authenticated' | 'anonymous';
@@ -51,17 +51,15 @@ export class AuthService {
     );
   }
 
-  /** Exchanges a Google ID token for an application session. */
-  public loginWithGoogle(idToken: string): Observable<AuthenticatedUser> {
+  public register(data: RegisterRequest): Observable<AuthenticatedUser> {
     return this.api
-      .post<AuthenticatedUser, { idToken: string }>(API_ENDPOINTS.auth.google, { idToken })
+      .post<AuthenticatedUser, RegisterRequest>(API_ENDPOINTS.auth.register, data)
       .pipe(tap((user) => this.setAuthenticated(user)));
   }
 
-  /** Development-only: creates a session without Google OAuth. */
-  public devLogin(): Observable<AuthenticatedUser> {
+  public login(data: LoginRequest): Observable<AuthenticatedUser> {
     return this.api
-      .post<AuthenticatedUser>(API_ENDPOINTS.auth.devLogin, {})
+      .post<AuthenticatedUser, LoginRequest>(API_ENDPOINTS.auth.login, data)
       .pipe(tap((user) => this.setAuthenticated(user)));
   }
 

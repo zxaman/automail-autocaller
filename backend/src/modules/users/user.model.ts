@@ -10,9 +10,14 @@ export interface UserPreferences {
 }
 
 export interface UserAttributes {
-  googleId: string;
-  name: string;
+  username: string;
+  name?: string;
   email: string;
+  passwordHash: string;
+  dateOfBirth: Date;
+  phoneNumber: string;
+  appCode: string;
+  userType: 'root' | 'employee';
   profileImageUrl: string | null;
   role: UserRole;
   workspaceId: Types.ObjectId;
@@ -36,9 +41,14 @@ const preferencesSchema = new Schema<UserPreferences>(
 
 const userSchema = new Schema<UserAttributes>(
   {
-    googleId: { type: String, required: true, trim: true },
-    name: { type: String, required: true, trim: true, maxlength: 160 },
-    email: { type: String, required: true, trim: true, lowercase: true, maxlength: 320 },
+    username: { type: String, required: true, unique: true, trim: true, maxlength: 80 },
+    name: { type: String, trim: true, maxlength: 160 },
+    email: { type: String, required: true, unique: true, trim: true, lowercase: true, maxlength: 320 },
+    passwordHash: { type: String, required: true, select: false },
+    dateOfBirth: { type: Date, required: true },
+    phoneNumber: { type: String, required: true, trim: true, maxlength: 20 },
+    appCode: { type: String, required: true, trim: true, maxlength: 50 },
+    userType: { type: String, enum: ['root', 'employee'], default: 'root' },
     profileImageUrl: { type: String, default: null },
     role: { type: String, enum: USER_ROLES, default: 'owner', required: true },
     workspaceId: { type: Schema.Types.ObjectId, ref: 'Workspace', required: true, index: true },
@@ -49,9 +59,6 @@ const userSchema = new Schema<UserAttributes>(
   { timestamps: true, versionKey: false },
 );
 
-// Google subject and email are unique account identifiers.
-userSchema.index({ googleId: 1 }, { unique: true });
-userSchema.index({ email: 1 }, { unique: true });
 // Supports future team listings scoped to a workspace.
 userSchema.index({ workspaceId: 1, role: 1 });
 

@@ -1,5 +1,4 @@
 import { env } from '../../config/environment';
-import { createGoogleTokenVerifier } from '../../infrastructure/google/google-token-verifier';
 import { createAuthenticateMiddleware } from '../../middleware/authenticate.middleware';
 import { UserRepository } from '../users/user.repository';
 import { WorkspaceRepository } from '../workspaces/workspace.repository';
@@ -20,8 +19,7 @@ export function createAuthModule() {
   const authService = new AuthService(
     userRepository,
     workspaceRepository,
-    sessionService,
-    createGoogleTokenVerifier(),
+    sessionService
   );
 
   return {

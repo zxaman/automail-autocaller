@@ -4,8 +4,8 @@ import { UserModel, type UserDocument } from './user.model';
 
 /** Data access for users. Contains no business rules. */
 export class UserRepository {
-  public async findByGoogleId(googleId: string): Promise<UserDocument | null> {
-    return UserModel.findOne({ googleId }).exec();
+  public async findByUsername(username: string): Promise<UserDocument | null> {
+    return UserModel.findOne({ username }).exec();
   }
 
   public async findByEmail(email: string): Promise<UserDocument | null> {
@@ -19,8 +19,17 @@ export class UserRepository {
   public async create(
     attributes: Pick<
       UserDocument,
-      'googleId' | 'name' | 'email' | 'profileImageUrl' | 'role' | 'workspaceId'
-    >,
+      | 'username'
+      | 'name'
+      | 'email'
+      | 'passwordHash'
+      | 'dateOfBirth'
+      | 'phoneNumber'
+      | 'appCode'
+      | 'userType'
+      | 'role'
+      | 'workspaceId'
+    > & { profileImageUrl?: string | null },
     session?: ClientSession,
   ): Promise<UserDocument> {
     const [created] = await UserModel.create([attributes], session ? { session } : {});
@@ -32,12 +41,5 @@ export class UserRepository {
 
   public async touchLogin(userId: Types.ObjectId, at: Date): Promise<void> {
     await UserModel.updateOne({ _id: userId }, { $set: { lastLoginAt: at } }).exec();
-  }
-
-  public async updateProfileFromGoogle(
-    userId: Types.ObjectId,
-    profile: { name: string; profileImageUrl: string | null },
-  ): Promise<void> {
-    await UserModel.updateOne({ _id: userId }, { $set: profile }).exec();
   }
 }

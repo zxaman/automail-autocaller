@@ -1,58 +1,69 @@
-import {
-  AfterViewInit,
-  ChangeDetectionStrategy,
-  Component,
-  ElementRef,
-  inject,
-  input,
-  viewChild,
-} from '@angular/core';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { Component, inject, signal } from '@angular/core';
+import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatIconModule } from '@angular/material/icon';
+import { MatInputModule } from '@angular/material/input';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 
-import { UiLoadingSpinnerComponent } from '../../../shared/components/ui-loading-spinner/ui-loading-spinner.component';
-import type { LoginRedirectReason } from './login-page.model';
-import { LoginPageService } from './login-page.service';
+import { AuthService } from '../../../core/services/auth.service';
 
-/**
- * Google-only sign-in screen.
- *
- * The official Google Identity Services button is rendered so the flow matches
- * Google's branding and security requirements. No password field exists, and no
- * session is ever simulated on the client.
- */
 @Component({
   selector: 'app-login-page',
   standalone: true,
-  imports: [MatProgressBarModule, MatButtonModule, UiLoadingSpinnerComponent],
-  providers: [LoginPageService],
+  imports: [
+    ReactiveFormsModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatButtonModule,
+    MatIconModule,
+    MatProgressBarModule,
+    RouterLink,
+  ],
   templateUrl: './login-page.component.html',
-  styleUrl: './login-page.component.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush,
+  styleUrls: ['./login-page.component.scss'],
 })
-export class LoginPageComponent implements AfterViewInit {
-  private readonly loginPageService = inject(LoginPageService);
+export class LoginPageComponent {
+  private readonly fb = inject(NonNullableFormBuilder);
+  private readonly authService = inject(AuthService);
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
-  /** Bound from the query string by `withComponentInputBinding()`. */
-  public readonly returnUrl = input<string>('/dashboard');
-  public readonly reason = input<LoginRedirectReason>(null);
+  public readonly isSubmitting = signal(false);
+  public readonly errorMessage = signal<string | null>(null);
+  public readonly hidePassword = signal(true);
 
-  private readonly googleButton = viewChild.required<ElementRef<HTMLElement>>('googleButton');
+  public readonly loginForm = this.fb.group({
+    email: ['', [Validators.required, Validators.email]],
+    password: ['', [Validators.required]],
+  });
 
-  protected readonly isSubmitting = this.loginPageService.isSubmitting;
-  protected readonly isUnavailable = this.loginPageService.isUnavailable;
-  protected readonly isInitializing = this.loginPageService.isInitializing;
-  protected readonly errorMessage = this.loginPageService.errorMessage;
-  protected readonly isDevMode = this.loginPageService.isDevMode;
-
-  public ngAfterViewInit(): void {
-    this.loginPageService.mountGoogleButton(
-      this.googleButton().nativeElement,
-      this.returnUrl() || '/dashboard',
-    );
+  public togglePassword(): void {
+    this.hidePassword.update((hide) => !hide);
   }
 
-  protected loginAsDev(): void {
-    this.loginPageService.loginAsDev();
+  public onSubmit(): void {
+    if (this.loginForm.invalid) {
+      this.loginForm.markAllAsTouched();
+      return;
+    }
+
+    this.isSubmitting.set(true);
+    this.errorMessage.set(null);
+
+    const data = this.loginForm.getRawValue();
+
+    this.authService.login(data).subscribe({
+      next: () => {
+        const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') || '/dashboard';
+        this.router.navigateByUrl(returnUrl);
+      },
+      error: (err: unknown) => {
+        this.isSubmitting.set(false);
+        this.errorMessage.set('Invalid email or password. Please try again.');
+        console.error('Login error', err);
+      },
+    });
   }
 }

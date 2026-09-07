@@ -13,8 +13,13 @@ export interface AuthContext {
 /** Safe user projection returned to the client. Never includes credentials. */
 export interface AuthenticatedUserDto {
   id: string;
+  username: string;
   name: string;
   email: string;
+  userType: 'root' | 'employee';
+  phoneNumber: string;
+  dateOfBirth: string | null;
+  appCode: string;
   profileImageUrl: string | null;
   role: UserRole;
   workspaceId: string;

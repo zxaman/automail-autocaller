@@ -4,10 +4,10 @@
  */
 export const API_ENDPOINTS = {
   auth: {
-    google: '/auth/google',
+    register: '/auth/register',
+    login: '/auth/login',
     me: '/auth/me',
     logout: '/auth/logout',
-    devLogin: '/auth/dev-login',
   },
   dashboard: '/dashboard',
   contacts: '/contacts',
