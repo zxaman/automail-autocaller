@@ -62,4 +62,11 @@ const userSchema = new Schema<UserAttributes>(
 // Supports future team listings scoped to a workspace.
 userSchema.index({ workspaceId: 1, role: 1 });
 
+// Legacy Google-auth data left a unique `googleId` index in some databases.
+// Password-based registration does not populate that field, so a regular
+// unique index would treat every new user as `googleId = null` and reject the
+// second account. Mark it sparse here and drop the stale non-sparse index so
+// both auth flows can coexist safely.
+userSchema.index({ googleId: 1 }, { unique: true, sparse: true });
+
 export const UserModel: Model<UserAttributes> = model<UserAttributes>('User', userSchema);

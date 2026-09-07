@@ -38,7 +38,11 @@ describe('ComposePageService', () => {
     retry: ReturnType<typeof vi.fn>;
     uploadAttachment: ReturnType<typeof vi.fn>;
   };
-  let contactService: { list: ReturnType<typeof vi.fn> };
+  let contactService: {
+    list: ReturnType<typeof vi.fn>;
+    create: ReturnType<typeof vi.fn>;
+    getById: ReturnType<typeof vi.fn>;
+  };
   let notifications: { success: ReturnType<typeof vi.fn>; error: ReturnType<typeof vi.fn> };
   let service: ComposePageService;
 
@@ -66,6 +70,25 @@ describe('ComposePageService', () => {
           pagination: { page: 1, pageSize: 100, totalItems: 3, totalPages: 1 },
         }),
       ),
+      create: vi.fn().mockImplementation((payload) =>
+        of({
+          id: `created-${payload.email}`,
+          name: payload.name,
+          phone: null,
+          email: payload.email,
+          company: null,
+          designation: null,
+          location: null,
+          tags: [],
+          notes: null,
+          source: 'manual',
+          importBatchId: null,
+          lastContactedAt: null,
+          createdAt: '2026-01-01T00:00:00.000Z',
+          updatedAt: '2026-01-01T00:00:00.000Z',
+        }),
+      ),
+      getById: vi.fn(),
     };
     notifications = { success: vi.fn(), error: vi.fn() };
 
@@ -93,6 +116,24 @@ describe('ComposePageService', () => {
 
     expect(service.recipientCount()).toBe(2);
     expect(service.selectedIds().has('c3')).toBe(false);
+  });
+
+  it('adds typed recipient emails as contacts and selects them', async () => {
+    await service.addRecipientEmails('new.person@example.com, second@example.com');
+
+    expect(contactService.create).toHaveBeenCalledTimes(2);
+    expect(service.recipientCount()).toBe(2);
+    expect(service.selectedContacts().map((contact) => contact.email)).toContain(
+      'new.person@example.com',
+    );
+    expect(service.recipientDraft()).toBe('');
+  });
+
+  it('reuses an existing contact when a typed email already exists', async () => {
+    await service.addRecipientEmails('asha@example.com');
+
+    expect(contactService.create).not.toHaveBeenCalled();
+    expect(service.selectedIds().has('c1')).toBe(true);
   });
 
   it('reports selected contacts that cannot be reached', () => {

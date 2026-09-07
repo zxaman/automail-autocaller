@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import { logger } from '../../infrastructure/logger/logger';
 import { AppError } from '../../shared/errors/app-error';
 import { hashPassword, verifyPassword } from '../../shared/utils/password';
+import type { EmailAccountService } from '../email-accounts/email-account.service';
 import { toAuthenticatedUserDto } from '../users/user.mapper';
 import { UserModel, type UserDocument } from '../users/user.model';
 import type { UserRepository } from '../users/user.repository';
@@ -24,6 +25,7 @@ export class AuthService {
     private readonly userRepository: UserRepository,
     private readonly workspaceRepository: WorkspaceRepository,
     private readonly sessionService: SessionService,
+    private readonly emailAccountService: EmailAccountService | null = null,
   ) {}
 
   public async register(
@@ -59,6 +61,19 @@ export class AuthService {
       appCode: input.appCode,
       userType: 'root',
     });
+
+    try {
+      await this.connectDefaultEmailAccount(user._id, user.workspaceId, {
+        email: input.email,
+        displayName: input.username,
+        appPassword: input.appCode,
+        makeDefault: true,
+      });
+    } catch (error) {
+      await this.userRepository.deleteById(user._id);
+      await this.workspaceRepository.deleteById(user.workspaceId);
+      throw error;
+    }
 
     const now = new Date();
     await this.userRepository.touchLogin(user._id, now);
@@ -178,5 +193,22 @@ export class AuthService {
       await mongoose.model('Workspace').deleteOne({ _id: workspace._id }).exec();
       throw error;
     }
+  }
+
+  private async connectDefaultEmailAccount(
+    userId: mongoose.Types.ObjectId,
+    workspaceId: mongoose.Types.ObjectId,
+    input: {
+      email: string;
+      displayName: string;
+      appPassword: string;
+      makeDefault: boolean;
+    },
+  ): Promise<void> {
+    if (!this.emailAccountService) {
+      return;
+    }
+
+    await this.emailAccountService.connect({ workspaceId }, userId, input);
   }
 }

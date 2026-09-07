@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/cor
 import { DomSanitizer, type SafeHtml } from '@angular/platform-browser';
 import { ActivatedRoute } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
+import { RouterLink } from '@angular/router';
 
 import { UiButtonComponent } from '../../../shared/components/ui-button/ui-button.component';
 import { UiCardComponent } from '../../../shared/components/ui-card/ui-card.component';
@@ -31,6 +32,7 @@ import { ComposePageService } from './compose-page.service';
     UiLoadingSpinnerComponent,
     UiStatusBadgeComponent,
     RelativeTimePipe,
+    RouterLink,
   ],
   providers: [ComposePageService],
   templateUrl: './compose-page.component.html',
@@ -89,6 +91,19 @@ export class ComposePageComponent implements OnInit {
     this.state.setBodyHtml((event.target as HTMLTextAreaElement).value);
   }
 
+  protected onRecipientInput(event: Event): void {
+    this.state.setRecipientDraft((event.target as HTMLInputElement).value);
+  }
+
+  protected addRecipients(event?: Event): void {
+    event?.preventDefault();
+    void this.state.addRecipientEmails(this.state.recipientDraft());
+  }
+
+  protected removeRecipient(contactId: string): void {
+    this.state.removeRecipient(contactId);
+  }
+
   protected onTemplateChange(event: Event): void {
     const value = (event.target as HTMLSelectElement).value;
     this.state.applyTemplate(value || null);
@@ -101,10 +116,9 @@ export class ComposePageComponent implements OnInit {
 
   protected onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
-    const file = input.files?.[0];
 
-    if (file) {
-      void this.state.uploadAttachment(file);
+    if (input.files) {
+      void Promise.all(Array.from(input.files).map((file) => this.state.uploadAttachment(file)));
     }
 
     // Clearing lets the same file be chosen again after an error.

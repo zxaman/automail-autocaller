@@ -1,5 +1,6 @@
 import { env } from '../../config/environment';
 import { createAuthenticateMiddleware } from '../../middleware/authenticate.middleware';
+import type { EmailAccountService } from '../email-accounts/email-account.service';
 import { UserRepository } from '../users/user.repository';
 import { WorkspaceRepository } from '../workspaces/workspace.repository';
 import { AuthController } from './auth.controller';
@@ -11,7 +12,7 @@ import { SessionService } from './session.service';
  * Composition root for the authentication module. Wiring lives here so routes
  * stay declarative and every dependency is explicit and swappable in tests.
  */
-export function createAuthModule() {
+export function createAuthModule(emailAccountService: EmailAccountService | null = null) {
   const userRepository = new UserRepository();
   const workspaceRepository = new WorkspaceRepository();
   const sessionRepository = new SessionRepository();
@@ -19,7 +20,8 @@ export function createAuthModule() {
   const authService = new AuthService(
     userRepository,
     workspaceRepository,
-    sessionService
+    sessionService,
+    emailAccountService,
   );
 
   return {

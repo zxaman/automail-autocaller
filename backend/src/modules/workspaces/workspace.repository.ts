@@ -22,4 +22,8 @@ export class WorkspaceRepository {
   public async setOwner(workspaceId: Types.ObjectId, ownerId: Types.ObjectId): Promise<void> {
     await WorkspaceModel.updateOne({ _id: workspaceId }, { $set: { ownerId } }).exec();
   }
+
+  public async deleteById(workspaceId: Types.ObjectId): Promise<void> {
+    await WorkspaceModel.deleteOne({ _id: workspaceId }).exec();
+  }
 }

@@ -36,6 +36,44 @@
           </app-ui-button>
         </div>
 
+        <form class="compose__recipient-entry" (submit)="addRecipients($event)">
+          <label class="compose__label" for="recipientEmail">Add recipient email</label>
+          <div class="compose__recipient-entry-row">
+            <input
+              id="recipientEmail"
+              class="compose__input"
+              type="email"
+              autocomplete="email"
+              inputmode="email"
+              [value]="state.recipientDraft()"
+              (input)="onRecipientInput($event)"
+              placeholder="name@example.com, another@example.com"
+            />
+            <app-ui-button variant="primary" type="submit" size="sm">Add</app-ui-button>
+          </div>
+          <p class="compose__note">
+            You can paste multiple addresses separated by commas or new lines.
+          </p>
+        </form>
+
+        @if (state.selectedRecipientContacts().length > 0) {
+          <div class="compose__recipient-chips" aria-label="Selected recipients">
+            @for (contact of state.selectedRecipientContacts(); track contact.id) {
+              <span class="compose__recipient-chip">
+                <span>{{ contact.email }}</span>
+                <button
+                  type="button"
+                  class="compose__recipient-chip-remove"
+                  (click)="removeRecipient(contact.id)"
+                  aria-label="Remove recipient"
+                >
+                  ×
+                </button>
+              </span>
+            }
+          </div>
+        }
+
         @if (state.contacts().length === 0) {
           <app-ui-empty-state
             title="No contacts yet"
@@ -74,12 +112,26 @@
       <app-ui-card title="Message">
         <div class="compose__field">
           <label class="compose__label" for="template">Template</label>
-          <select id="template" class="compose__select" (change)="onTemplateChange($event)">
+          <select
+            id="template"
+            class="compose__select"
+            [value]="state.templateId() ?? ''"
+            (change)="onTemplateChange($event)"
+          >
             <option value="">Start from scratch</option>
-            @for (template of state.templates(); track template.id) {
-              <option [value]="template.id">{{ template.name }}</option>
+            @if (state.templates().length === 0) {
+              <option value="" disabled>No templates available yet</option>
+            } @else {
+              @for (template of state.templates(); track template.id) {
+                <option [value]="template.id">{{ template.name }}</option>
+              }
             }
           </select>
+          @if (state.templates().length === 0) {
+            <p class="compose__note">
+              Create reusable templates on the <a routerLink="/templates">Templates</a> page.
+            </p>
+          }
         </div>
 
         <div class="compose__field">
@@ -123,21 +175,39 @@
 
         <div class="compose__field">
           <label class="compose__label" for="signature">Signature</label>
-          <select id="signature" class="compose__select" (change)="onSignatureChange($event)">
+          <select
+            id="signature"
+            class="compose__select"
+            [value]="state.signatureId() ?? ''"
+            (change)="onSignatureChange($event)"
+          >
             <option value="">No signature</option>
-            @for (signature of state.signatures(); track signature.id) {
-              <option [value]="signature.id" [selected]="signature.id === state.signatureId()">
-                {{ signature.name }}
-              </option>
+            @if (state.signatures().length === 0) {
+              <option value="" disabled>No signatures available yet</option>
+            } @else {
+              @for (signature of state.signatures(); track signature.id) {
+                <option [value]="signature.id">{{ signature.name }}</option>
+              }
             }
           </select>
+          @if (state.signatures().length === 0) {
+            <p class="compose__note">
+              Signatures appear here after they are created for this workspace.
+              <a routerLink="/settings">Check Settings</a> to confirm your sending account.
+            </p>
+          }
         </div>
       </app-ui-card>
 
       <!-- Attachments -->
       <app-ui-card title="Attachments" subtitle="Reuse files across campaigns">
         <label class="compose__upload">
-          <input type="file" (change)="onFileSelected($event)" [disabled]="state.isUploading()" />
+          <input
+            type="file"
+            multiple
+            (change)="onFileSelected($event)"
+            [disabled]="state.isUploading()"
+          />
           <span>{{ state.isUploading() ? 'Uploading…' : 'Upload a file' }}</span>
         </label>
 
