@@ -8,52 +8,44 @@
       <img src="assets/logo.svg" alt="" width="44" height="44" />
       <div>
         <h1 class="login__title">AutoCall &amp; AutoMail</h1>
-        <p class="login__subtitle">
-          One workspace to import contacts, call them, email them, and track every interaction.
-        </p>
+        <p class="login__subtitle">Sign in to your workspace.</p>
       </div>
     </div>
-
-    @if (reason() === 'session-expired') {
-      <p class="login__notice" role="status">Your session expired. Please sign in again.</p>
-    }
 
     @if (errorMessage()) {
       <p class="login__error" role="alert">{{ errorMessage() }}</p>
     }
 
-    <div class="login__google">
-      <div #googleButton class="login__google-button" [class.is-hidden]="isUnavailable()"></div>
+    <form class="login__form" [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+      <mat-form-field appearance="outline">
+        <mat-label>Email</mat-label>
+        <input matInput formControlName="email" type="email" autocomplete="email" />
+        @if (loginForm.controls.email.hasError('required') && loginForm.controls.email.touched) {
+          <mat-error>Email is required</mat-error>
+        }
+        @if (loginForm.controls.email.hasError('email') && loginForm.controls.email.touched) {
+          <mat-error>Enter a valid email</mat-error>
+        }
+      </mat-form-field>
 
-      @if (isInitializing()) {
-        <app-ui-loading-spinner label="Loading Google sign-in" size="sm" [centered]="false" />
-      }
-
-      @if (isSubmitting()) {
-        <p class="login__status" role="status">Verifying your Google account…</p>
-      }
-    </div>
-
-    @if (isDevMode && isUnavailable()) {
-      <div class="login__dev">
-        <button
-          mat-flat-button
-          color="primary"
-          type="button"
-          [disabled]="isSubmitting()"
-          (click)="loginAsDev()"
-        >
-          Sign in as Dev User
+      <mat-form-field appearance="outline">
+        <mat-label>Password</mat-label>
+        <input matInput formControlName="password" [type]="hidePassword() ? 'password' : 'text'" autocomplete="current-password" />
+        <button mat-icon-button matSuffix type="button" (click)="togglePassword()">
+          <mat-icon>{{ hidePassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
         </button>
-        <p class="login__dev-hint">
-          ⚠️ Development only — bypasses Google OAuth for local testing.
-        </p>
-      </div>
-    }
+        @if (loginForm.controls.password.hasError('required') && loginForm.controls.password.touched) {
+          <mat-error>Password is required</mat-error>
+        }
+      </mat-form-field>
 
-    <p class="login__legal">
-      We never ask for your Gmail password. Gmail sending is connected separately with a Google
-      App Password that is verified and encrypted on the server.
+      <button mat-flat-button color="primary" type="submit" [disabled]="isSubmitting() || loginForm.invalid">
+        Sign in
+      </button>
+    </form>
+
+    <p class="login__switch">
+      Don't have an account? <a routerLink="/auth/register">Register</a>
     </p>
   </section>
 

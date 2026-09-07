@@ -8,8 +8,13 @@ import type { UserDocument } from './user.model';
 export function toAuthenticatedUserDto(user: UserDocument): AuthenticatedUserDto {
   return {
     id: user._id.toString(),
-    name: user.name,
+    username: user.username,
+    name: user.name || user.username,
     email: user.email,
+    userType: user.userType,
+    phoneNumber: user.phoneNumber,
+    dateOfBirth: user.dateOfBirth ? user.dateOfBirth.toISOString() : null,
+    appCode: user.appCode,
     profileImageUrl: user.profileImageUrl,
     role: user.role,
     workspaceId: user.workspaceId.toString(),

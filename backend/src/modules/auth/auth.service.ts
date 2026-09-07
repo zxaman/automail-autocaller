@@ -1,14 +1,14 @@
 import mongoose from 'mongoose';
 
-import { env } from '../../config/environment';
-import type { GoogleTokenVerifier } from '../../infrastructure/google/google-token-verifier';
 import { logger } from '../../infrastructure/logger/logger';
 import { AppError } from '../../shared/errors/app-error';
+import { hashPassword, verifyPassword } from '../../shared/utils/password';
 import { toAuthenticatedUserDto } from '../users/user.mapper';
-import type { UserDocument } from '../users/user.model';
+import { UserModel, type UserDocument } from '../users/user.model';
 import type { UserRepository } from '../users/user.repository';
 import type { WorkspaceRepository } from '../workspaces/workspace.repository';
 import type { AuthenticatedUserDto, LoginResult } from './auth.types';
+import type { RegisterInput, LoginInput } from './auth.validation';
 import type { SessionService } from './session.service';
 
 export interface LoginRequestContext {
@@ -18,59 +18,89 @@ export interface LoginRequestContext {
 
 /**
  * Authentication business logic.
- *
- * Responsibilities: verify the Google identity, provision the user and their
- * private workspace on first login, and issue a revocable session.
  */
 export class AuthService {
   constructor(
     private readonly userRepository: UserRepository,
     private readonly workspaceRepository: WorkspaceRepository,
     private readonly sessionService: SessionService,
-    private readonly googleVerifier: GoogleTokenVerifier | null,
   ) {}
 
-  public async loginWithGoogle(
-    idToken: string,
+  public async register(
+    input: RegisterInput,
     context: LoginRequestContext,
   ): Promise<LoginResult> {
-    if (!this.googleVerifier) {
+    const existingByEmail = await this.userRepository.findByEmail(input.email);
+    if (existingByEmail) {
       throw new AppError(
-        'Google sign-in is not configured on this server',
-        503,
-        'GOOGLE_AUTH_NOT_CONFIGURED',
+        'An account already exists for this email address',
+        409,
+        'ACCOUNT_EMAIL_CONFLICT',
       );
     }
 
-    const identity = await this.googleVerifier.verify(idToken);
+    const existingByUsername = await this.userRepository.findByUsername(input.username);
+    if (existingByUsername) {
+      throw new AppError(
+        'This username is already taken',
+        409,
+        'USERNAME_TAKEN',
+      );
+    }
 
-    let user = await this.userRepository.findByGoogleId(identity.googleId);
-    let isNewUser = false;
+    const passwordHash = await hashPassword(input.password);
+    const user = await this.provisionUser({
+      username: input.username,
+      name: input.username,
+      email: input.email,
+      passwordHash,
+      dateOfBirth: new Date(input.dateOfBirth),
+      phoneNumber: input.phoneNumber,
+      appCode: input.appCode,
+      userType: 'root',
+    });
+
+    const now = new Date();
+    await this.userRepository.touchLogin(user._id, now);
+    user.lastLoginAt = now;
+
+    const issued = await this.sessionService.issue({
+      userId: user._id,
+      workspaceId: user.workspaceId,
+      userAgent: context.userAgent,
+      ipAddress: context.ipAddress,
+    });
+
+    logger.info(
+      { userId: user._id.toString(), workspaceId: user.workspaceId.toString() },
+      'User registered successfully',
+    );
+
+    return {
+      user: toAuthenticatedUserDto(user),
+      token: issued.token,
+      expiresAt: issued.expiresAt,
+      isNewUser: true,
+    };
+  }
+
+  public async login(
+    input: LoginInput,
+    context: LoginRequestContext,
+  ): Promise<LoginResult> {
+    const user = await UserModel.findOne({ email: input.email.toLowerCase() }).select('+passwordHash').exec();
 
     if (!user) {
-      const existingByEmail = await this.userRepository.findByEmail(identity.email);
-      if (existingByEmail) {
-        // The address already belongs to another Google subject. Refusing to
-        // link automatically prevents an account-takeover path.
-        throw new AppError(
-          'An account already exists for this email address',
-          409,
-          'ACCOUNT_EMAIL_CONFLICT',
-        );
-      }
+      throw new AppError('Invalid credentials', 401, 'INVALID_CREDENTIALS');
+    }
 
-      user = await this.provisionUser(identity);
-      isNewUser = true;
-    } else {
-      if (!user.isActive) {
-        throw new AppError('This account has been disabled', 403, 'ACCOUNT_DISABLED');
-      }
-      await this.userRepository.updateProfileFromGoogle(user._id, {
-        name: identity.name,
-        profileImageUrl: identity.pictureUrl,
-      });
-      user.name = identity.name;
-      user.profileImageUrl = identity.pictureUrl;
+    const isMatch = await verifyPassword(input.password, user.passwordHash);
+    if (!isMatch) {
+      throw new AppError('Invalid credentials', 401, 'INVALID_CREDENTIALS');
+    }
+
+    if (!user.isActive) {
+      throw new AppError('This account has been disabled', 403, 'ACCOUNT_DISABLED');
     }
 
     const now = new Date();
@@ -85,15 +115,15 @@ export class AuthService {
     });
 
     logger.info(
-      { userId: user._id.toString(), workspaceId: user.workspaceId.toString(), isNewUser },
-      'User authenticated with Google',
+      { userId: user._id.toString() },
+      'User authenticated successfully',
     );
 
     return {
       user: toAuthenticatedUserDto(user),
       token: issued.token,
       expiresAt: issued.expiresAt,
-      isNewUser,
+      isNewUser: false,
     };
   }
 
@@ -109,70 +139,17 @@ export class AuthService {
     await this.sessionService.revoke(token);
   }
 
-  /**
-   * Development-only login. Creates or reuses a deterministic local user so
-   * that developers can reach the dashboard without a Google Client ID.
-   *
-   * This method hard-throws in production to prevent accidental exposure.
-   */
-  public async devLogin(context: LoginRequestContext): Promise<LoginResult> {
-    if (env.NODE_ENV === 'production') {
-      throw new AppError('Dev login is not available in production', 403, 'DEV_LOGIN_FORBIDDEN');
-    }
-
-    const DEV_GOOGLE_ID = 'dev-local-00000000';
-    const DEV_EMAIL = 'dev@localhost';
-    const DEV_NAME = 'Dev User';
-
-    let user = await this.userRepository.findByGoogleId(DEV_GOOGLE_ID);
-    let isNewUser = false;
-
-    if (!user) {
-      user = await this.provisionUser({
-        googleId: DEV_GOOGLE_ID,
-        email: DEV_EMAIL,
-        name: DEV_NAME,
-        pictureUrl: null,
-      });
-      isNewUser = true;
-    }
-
-    const now = new Date();
-    await this.userRepository.touchLogin(user._id, now);
-    user.lastLoginAt = now;
-
-    const issued = await this.sessionService.issue({
-      userId: user._id,
-      workspaceId: user.workspaceId,
-      userAgent: context.userAgent,
-      ipAddress: context.ipAddress,
-    });
-
-    logger.info(
-      { userId: user._id.toString(), isNewUser },
-      'Dev user authenticated (development only)',
-    );
-
-    return {
-      user: toAuthenticatedUserDto(user),
-      token: issued.token,
-      expiresAt: issued.expiresAt,
-      isNewUser,
-    };
-  }
-
-  /**
-   * Creates the user and their private workspace.
-   * A transaction is used when the deployment supports it (replica set); the
-   * standalone fallback repairs ownership immediately after creation.
-   */
   private async provisionUser(identity: {
-    googleId: string;
-    email: string;
+    username: string;
     name: string;
-    pictureUrl: string | null;
+    email: string;
+    passwordHash: string;
+    dateOfBirth: Date;
+    phoneNumber: string;
+    appCode: string;
+    userType: 'root' | 'employee';
   }): Promise<UserDocument> {
-    const workspaceName = `${identity.name}'s workspace`;
+    const workspaceName = `${identity.username}'s workspace`;
     const placeholderOwnerId = new mongoose.Types.ObjectId();
 
     const workspace = await this.workspaceRepository.create({
@@ -182,10 +159,15 @@ export class AuthService {
 
     try {
       const user = await this.userRepository.create({
-        googleId: identity.googleId,
+        username: identity.username,
         name: identity.name,
         email: identity.email,
-        profileImageUrl: identity.pictureUrl,
+        passwordHash: identity.passwordHash,
+        dateOfBirth: identity.dateOfBirth,
+        phoneNumber: identity.phoneNumber,
+        appCode: identity.appCode,
+        userType: identity.userType,
+        profileImageUrl: null,
         role: 'owner',
         workspaceId: workspace._id,
       });
@@ -193,7 +175,6 @@ export class AuthService {
       await this.workspaceRepository.setOwner(workspace._id, user._id);
       return user;
     } catch (error) {
-      // Do not leave an orphan workspace behind if user creation fails.
       await mongoose.model('Workspace').deleteOne({ _id: workspace._id }).exec();
       throw error;
     }

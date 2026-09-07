@@ -16,6 +16,15 @@ export const APP_ROUTES: Routes = [
       import('./features/auth/login-page/login-page.component').then((m) => m.LoginPageComponent),
   },
   {
+    path: 'auth/register',
+    canActivate: [guestGuard],
+    title: 'Register · AutoCall & AutoMail',
+    loadComponent: () =>
+      import('./features/auth/register-page/register-page.component').then(
+        (m) => m.RegisterPageComponent,
+      ),
+  },
+  {
     path: '',
     canActivate: [authGuard],
     loadComponent: () =>

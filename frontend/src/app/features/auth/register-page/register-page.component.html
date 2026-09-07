@@ -1,0 +1,111 @@
+<div class="login">
+  <section class="login__panel" style="overflow-y: auto;">
+    @if (isSubmitting()) {
+      <mat-progress-bar class="login__progress" mode="indeterminate" />
+    }
+
+    <div class="login__brand">
+      <img src="assets/logo.svg" alt="" width="44" height="44" />
+      <div>
+        <h1 class="login__title">AutoCall &amp; AutoMail</h1>
+        <p class="login__subtitle">Create a new workspace.</p>
+      </div>
+    </div>
+
+    @if (errorMessage()) {
+      <p class="login__error" role="alert">{{ errorMessage() }}</p>
+    }
+
+    <form class="login__form" [formGroup]="registerForm" (ngSubmit)="onSubmit()">
+      <mat-form-field appearance="outline">
+        <mat-label>Username</mat-label>
+        <input matInput formControlName="username" type="text" autocomplete="username" />
+        @if (registerForm.controls.username.hasError('required') && registerForm.controls.username.touched) {
+          <mat-error>Username is required</mat-error>
+        }
+        @if (registerForm.controls.username.hasError('minlength') && registerForm.controls.username.touched) {
+          <mat-error>Username must be at least 3 characters</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Email</mat-label>
+        <input matInput formControlName="email" type="email" autocomplete="email" />
+        @if (registerForm.controls.email.hasError('required') && registerForm.controls.email.touched) {
+          <mat-error>Email is required</mat-error>
+        }
+        @if (registerForm.controls.email.hasError('email') && registerForm.controls.email.touched) {
+          <mat-error>Enter a valid email</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Phone Number</mat-label>
+        <input matInput formControlName="phoneNumber" type="tel" autocomplete="tel" />
+        @if (registerForm.controls.phoneNumber.hasError('required') && registerForm.controls.phoneNumber.touched) {
+          <mat-error>Phone number is required</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Date of Birth</mat-label>
+        <input matInput [matDatepicker]="picker" formControlName="dateOfBirth">
+        <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
+        <mat-datepicker #picker></mat-datepicker>
+        @if (registerForm.controls.dateOfBirth.hasError('required') && registerForm.controls.dateOfBirth.touched) {
+          <mat-error>Date of birth is required</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>App Code</mat-label>
+        <input matInput formControlName="appCode" type="text" />
+        @if (registerForm.controls.appCode.hasError('required') && registerForm.controls.appCode.touched) {
+          <mat-error>App code is required</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Password</mat-label>
+        <input matInput formControlName="password" [type]="hidePassword() ? 'password' : 'text'" autocomplete="new-password" />
+        <button mat-icon-button matSuffix type="button" (click)="togglePassword()">
+          <mat-icon>{{ hidePassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
+        </button>
+        @if (registerForm.controls.password.hasError('required') && registerForm.controls.password.touched) {
+          <mat-error>Password is required</mat-error>
+        }
+        @if (registerForm.controls.password.hasError('minlength') && registerForm.controls.password.touched) {
+          <mat-error>Password must be at least 8 characters</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Confirm Password</mat-label>
+        <input matInput formControlName="confirmPassword" [type]="hidePassword() ? 'password' : 'text'" autocomplete="new-password" />
+        @if (registerForm.controls.confirmPassword.hasError('required') && registerForm.controls.confirmPassword.touched) {
+          <mat-error>Please confirm your password</mat-error>
+        }
+        @if (registerForm.hasError('passwordMismatch') && registerForm.controls.confirmPassword.touched) {
+          <mat-error>Passwords do not match</mat-error>
+        }
+      </mat-form-field>
+
+      <button mat-flat-button color="primary" type="submit" [disabled]="isSubmitting() || registerForm.invalid">
+        Create Account
+      </button>
+    </form>
+
+    <p class="login__switch">
+      Already have an account? <a routerLink="/auth/login">Sign in</a>
+    </p>
+  </section>
+
+  <aside class="login__aside" aria-hidden="true">
+    <ul class="login__points">
+      <li>Import contacts from Excel or CSV with column mapping.</li>
+      <li>Call from inside the application through a telephony provider.</li>
+      <li>Send personalized email with templates, signatures, and saved attachments.</li>
+      <li>See every call and email on one communication timeline.</li>
+    </ul>
+  </aside>
+</div>
