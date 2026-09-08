@@ -27,5 +27,8 @@
   },
   "engines": {
     "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "@ankitkumar131/mycode-ai": "^3.0.0"
   }
 }
